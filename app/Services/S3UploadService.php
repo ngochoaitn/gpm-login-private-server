@@ -147,7 +147,7 @@ class S3UploadService
                 'upload_url' => $presignedUrl,
                 // 'public_url' => "https://{$bucket}.s3.amazonaws.com/{$key}",
                 'key' => $key,
-                'storage_path' => $key,
+                'storage_path' => $s3Data['s3_api_bucket'] . '/' . $key,
                 // 'expires_in' => 600,                         // 10 minutes
                 'mime_type' => $mimeType,
                 'method' => 'PUT'

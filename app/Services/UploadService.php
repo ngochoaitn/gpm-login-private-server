@@ -142,7 +142,8 @@ class UploadService
 
             if ($storageType === 's3') {
                 $this->configureS3FromDatabase();
-                $fullLocation = $storage_path;
+                $s3Bucket = $this->settingService->getSetting('s3_bucket')->value ?? '';
+                $fullLocation = str_replace($s3Bucket . '/', '', $storage_path);
                 Storage::disk('s3')->delete($fullLocation);
             } else {
                 $relativePath = ltrim(preg_replace('/^storage\//', '', $storage_path));
