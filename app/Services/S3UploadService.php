@@ -163,7 +163,7 @@ class S3UploadService
      * @param string $expires Expiration time (default: +10 minutes)
      * @return array
      */
-    public function generatePresignedUploadUrl($fileName = null, $maxFileSize = 10485760, $expires = '+50 minutes', $mimeType = 'application/octet-stream')
+    public function generatePresignedUploadUrl($fileName = null, $expires = '+50 minutes', $mimeType = 'application/octet-stream')
     {
         try {
             return $this->generateUploadPresignedUrl($fileName, $expires, $mimeType);

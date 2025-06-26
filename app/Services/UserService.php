@@ -94,6 +94,7 @@ class UserService
     public function updateUser(string $userId, string $displayName, ?string $systemRole = null, ?string $newPassword = null, ?bool $isActive = null)
     {
         $user = User::find($userId);
+        $loginUser = auth()->user();
 
         if (!$user) {
             return ['success' => false, 'message' => 'user_not_found', 'data' => null];
@@ -101,7 +102,7 @@ class UserService
 
         $user->display_name = $displayName;
 
-        if ($systemRole !== null && in_array($systemRole, [User::ROLE_ADMIN, User::ROLE_MOD, User::ROLE_USER])) {
+        if ($loginUser->isAdmin() && $systemRole !== null && in_array($systemRole, [User::ROLE_ADMIN, User::ROLE_MOD, User::ROLE_USER])) {
             $user->system_role = $systemRole;
         }
 

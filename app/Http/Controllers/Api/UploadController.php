@@ -44,12 +44,11 @@ class UploadController extends BaseController
     {
         // Get optional parameters from request
         $fileName = $request->get('file_name');
-        $maxFileSize = $request->get('max_file_size', 10485760000); // Default 10000MB~9GB
-        $expires = $request->get('expires', '+10 minutes'); // Default 10 minutes
+        $expires = $request->get('expires', '+50 minutes'); // Default 10 minutes
         $mimeType = $request->get('mime_type', 'application/octet-stream');
 
         // Generate presigned URL
-        $result = $this->s3UploadService->generatePresignedUploadUrl($fileName, $maxFileSize, $expires, $mimeType);
+        $result = $this->s3UploadService->generatePresignedUploadUrl($fileName, $expires, $mimeType);
 
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }

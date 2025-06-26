@@ -200,7 +200,8 @@ class ProfileController extends BaseController
     public function removeTags($id, Request $request)
     {
         $user = $request->user();
-        $result = $this->profileService->removeTagsFromProfile($id, $request->tags, $user);
+        $tags = $request->tags ?? $request->tag_ids ?? $request->ids ?? $request->all() ?? [];
+        $result = $this->profileService->removeTagsFromProfile($id, $tags, $user);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
@@ -222,5 +223,11 @@ class ProfileController extends BaseController
         $profile_ids = $request->profile_ids ?? $request->ids ?? $request->all() ?? [];
         $result = $this->profileService->bulkRestoreProfile($profile_ids);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
+    public function getProfileShareUsers($id)
+    {
+        $profileShares = $this->profileService->getProfileShareUsers($id, true);
+        return $this->getJsonResponse(true, 'OK', $profileShares);
     }
 }

@@ -109,7 +109,7 @@ class ProxyController extends BaseController
     public function removeTags($id, Request $request)
     {
         $user = $request->user();
-        $tags = $request->tags ?? $request->tag_ids ?? $request->all() ?? [];
+        $tags = $request->tags ?? $request->tag_ids ?? $request->ids ?? $request->all() ?? [];
         $result = $this->proxyService->removeTagsFromProxy($id, $tags, $user);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
@@ -137,12 +137,10 @@ class ProxyController extends BaseController
 
     public function bulkRemoveShare(Request $request)
     {
-        $user = $request->user();
-
+        $proxyIds = $request->proxy_ids ?? $request->ids ?? $request->all() ?? [];
         $result = $this->proxyService->bulkRemoveShareProxy(
-            $request->proxy_ids,
-            $request->user_id,
-            $request->role
+            $proxyIds,
+            $request->user_id
         );
 
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);

@@ -952,4 +952,23 @@ class ProfileService
             ];
         }
     }
+
+    /**
+     * Get group shares for a specific group
+     *
+     * @param int $groupId
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getProfileShareUsers(string $profileId, $paginate = false)
+    {
+        $query = ProfileShare::join('users', 'profile_shares.user_id', '=', 'users.id')
+        ->where('profile_shares.profile_id', $profileId)
+        ->select('users.id', 'users.display_name', 'users.email', 'profile_shares.role');
+
+        if ($paginate) {
+            return $query->paginate(20);
+        }
+
+        return $query->get();
+    }
 }

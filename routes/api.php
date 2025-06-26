@@ -31,9 +31,8 @@ Route::get('/time', [HomeController::class, 'getSystemTime']);
 // Users
 Route::prefix('users')->group(function () {
     Route::get('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [UserController::class, 'store']);
-    Route::middleware(['auth:sanctum'])->get('/logout', [AuthController::class, 'logout']);
-    // Route::get('/logout', [AuthController::class, 'logout']);
 });
 
 Route::prefix('settings')->group(function () {
@@ -51,6 +50,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [UserController::class, 'index']);
         Route::post('/update', [UserController::class, 'update']);
         Route::get('/current-user', [UserController::class, 'getCurrentUser']);
+        Route::get('/logout', [AuthController::class, 'logout']);
     });
 
     Route::prefix('groups')->group(function () {
@@ -59,8 +59,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/create', [GroupController::class, 'store']);
         Route::post('/update/{id}', [GroupController::class, 'update']);
         Route::post('/delete/{id}', [GroupController::class, 'destroy']);
-        Route::get('/share/{id}', action: [GroupController::class, 'share']);
-        Route::post('/remove-share/{id}', action: [GroupController::class, 'removeShare']);
+        Route::post('/share/{id}', [GroupController::class, 'share']);
+        Route::post('/remove-share/{id}', [GroupController::class, 'removeShare']);
         Route::get('/{id}', [GroupController::class, 'show']);
         Route::get('/get-share-users/{id}', [GroupController::class, 'getGroupShareUsers']);
     });
@@ -72,13 +72,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/create', [ProfileController::class, 'store']);
         Route::post('/update/{id}', [ProfileController::class, 'update']);
         Route::post('/bulk-edit-property', [ProfileController::class, 'bulkEditProperty']);
-        Route::post('/bulk-edit-proxy', [ProfileController::class, 'bulkEditProxy']);
         Route::post('/delete/{id}', [ProfileController::class, 'destroy']);
         Route::post('/bulk-delete', [ProfileController::class, 'bulkDelete']);
         Route::post('/share/{id}', action: [ProfileController::class, 'share']);
         Route::post('/bulk-share', [ProfileController::class, 'bulkShare']);
         Route::post('/bulk-remove-share', [ProfileController::class, 'bulkRemoveShare']);
-        Route::get('/shares/{id}', [ProfileController::class, 'getProfileShares']);
         Route::post('/start-using/{id}', [ProfileController::class, 'startUsing']);
         Route::post('/stop-using/{id}', [ProfileController::class, 'stopUsing']);
         Route::post('/update-status/{id}', [ProfileController::class, 'updateStatus']);
@@ -87,6 +85,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/remove-all-tags/{id}', [ProfileController::class, 'removeAllTags']);
         Route::post('/restore/{id}', [ProfileController::class, 'restore']);
         Route::post('/bulk-restore', [ProfileController::class, 'bulkRestore']);
+        Route::get('/get-share-users/{id}', [ProfileController::class, 'getProfileShareUsers']);
     });
 
     Route::prefix('file')->group(function () {
@@ -98,7 +97,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::prefix('tags')->group(function () {
         Route::get('/', [TagController::class, 'index']);
-        Route::get('/with-count', [TagController::class, 'getTagsWithCount']);
         Route::get('/get-by-name', [TagController::class, 'getByName']);
         Route::get('/{id}', [TagController::class, 'show']);
         Route::post('/create', [TagController::class, 'store']);
