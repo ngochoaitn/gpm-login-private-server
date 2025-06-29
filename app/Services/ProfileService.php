@@ -321,12 +321,12 @@ class ProfileService
             return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
-        if($delete_mode == 'hard') {
-            $this->uploadService->deleteFile($profile->storage_path);
-            $profile->delete();
-        } else {
-            $profile->softDelete($user);
-        }
+        // if($delete_mode == 'hard') {
+        //     $this->uploadService->deleteFile($profile->storage_path);
+        //     $profile->delete();
+        // } else {
+        //     $profile->softDelete($user);
+        // }
 
         return ['success' => true, 'message' => 'profile_deleted', 'data' => null];
     }
@@ -502,14 +502,16 @@ class ProfileService
     {
         $user = auth()->user();
 
-        if (!$this->checkAccessProfile($profileId, $user, [ProfileShare::ROLE_FULL, ProfileShare::ROLE_EDIT])) {
+        if (!$this->checkAccessProfile($profileId, $user, [ProfileShare::ROLE_FULL])) {
             return ['success' => false, 'message' => 'insufficient_permission_profile_share_remove', 'data' => null];
         }
 
         $profileShare = ProfileShare::where('profile_id', $profileId)->where('user_id', $userId)->first();
-        if ($profileShare != null) {
-            $profileShare->delete();
+        if ($profileShare == null) {
+            return ['success' => false, 'message' => 'share_not_found', 'data' => null];
         }
+
+        $profileShare->delete();
 
         return ['success' => true, 'message' => 'ok', 'data' => null];
     }

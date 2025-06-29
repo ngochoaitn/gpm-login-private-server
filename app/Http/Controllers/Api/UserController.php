@@ -19,10 +19,12 @@ class UserController extends BaseController
 
     public function index(Request $request)
     {
+        $exact = filter_var($request->query('exact', false), FILTER_VALIDATE_BOOLEAN);
         $filters = [
             'search' => $request->search ?? null,
             'per_page' => $request->per_page ?? 10,
-            'page' => $request->page ?? 1
+            'page' => $request->page ?? 1,
+            'exact' => $exact
         ];
 
         $users = $this->userService->getUsers($filters);

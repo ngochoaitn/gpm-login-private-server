@@ -74,7 +74,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/bulk-edit-property', [ProfileController::class, 'bulkEditProperty']);
         Route::post('/delete/{id}', [ProfileController::class, 'destroy']);
         Route::post('/bulk-delete', [ProfileController::class, 'bulkDelete']);
-        Route::post('/share/{id}', action: [ProfileController::class, 'share']);
+        Route::post('/share/{id}', [ProfileController::class, 'share']);
+        Route::post('/remove-share/{id}', [ProfileController::class, 'removeShare']);
         Route::post('/bulk-share', [ProfileController::class, 'bulkShare']);
         Route::post('/bulk-remove-share', [ProfileController::class, 'bulkRemoveShare']);
         Route::post('/start-using/{id}', [ProfileController::class, 'startUsing']);
@@ -89,9 +90,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     Route::prefix('file')->group(function () {
-        Route::post('upload', [UploadController::class, 'store']);
+        Route::post('local-upload', [UploadController::class, 'store']);
         Route::post('delete', [UploadController::class, 'delete']);
-        Route::post('upload-s3', [UploadController::class, 'uploadS3']);
+        Route::post('create-s3-upload-presigned-url', [UploadController::class, 'uploadS3']);
         Route::post('create-download-url', [UploadController::class, 'createDownloadUrl']);
     });
 
@@ -113,6 +114,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/bulk-delete', [ProxyController::class, 'bulkDelete']);
         Route::post('/add-tags/{id}', [ProxyController::class, 'addTags']);
         Route::post('/remove-tags/{id}', [ProxyController::class, 'removeTags']);
+        Route::post('/remove-share/{id}', [ProxyController::class, 'removeShare']);
         Route::post('/remove-all-tags/{id}', [ProxyController::class, 'removeAllTags']);
         Route::post('/bulk-share', [ProxyController::class, 'bulkShare']);
         Route::post('/bulk-remove-share', [ProxyController::class, 'bulkRemoveShare']);

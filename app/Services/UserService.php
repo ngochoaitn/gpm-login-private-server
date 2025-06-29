@@ -37,10 +37,16 @@ class UserService
         // Apply search filter
         if (isset($filters['search']) && !empty($filters['search'])) {
             $search = $filters['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('email', 'like', "%{$search}%")
-                    ->orWhere('display_name', 'like', "%{$search}%");
-            });
+            $exact = $filters['exact'] ?? false;
+            if ($exact==true) {
+                $query->where('email', $search);
+            }
+            else {
+                $query->where(function ($q) use ($search) {
+                    $q->where('email', 'like', "%{$search}%")
+                        ->orWhere('display_name', 'like', "%{$search}%");
+                });
+            }
         }
 
         // Apply active status filter

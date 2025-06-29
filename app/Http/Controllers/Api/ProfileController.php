@@ -133,6 +133,13 @@ class ProfileController extends BaseController
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 
+    public function removeShare($id, Request $request)
+    {
+        $user_id = $request->user_id;
+        $result = $this->profileService->removeShareProfile($id, $user_id);
+        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+    }
+
     public function bulkShare(Request $request)
     {
         $user = $request->user();

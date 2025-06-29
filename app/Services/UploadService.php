@@ -82,30 +82,6 @@ class UploadService
     }
 
     /**
-     * Store file to S3
-     *
-     * @param \Illuminate\Http\UploadedFile $file
-     * @param string $fileName
-     * @return array
-     */
-    private function storeFileToS3($file, string $fileName)
-    {
-        // Configure S3 from database settings
-        $this->configureS3FromDatabase();
-
-        $storedFile = $file->storeAs('profiles', $fileName, 's3');
-
-        return [
-            'success' => true,
-            'message' => 'ok',
-            'data' => [
-                'path' => 'profiles',
-                'file_name' => $fileName
-            ]
-        ];
-    }
-
-    /**
      * Configure S3 from database settings
      *
      * @return void
@@ -135,7 +111,7 @@ class UploadService
     {
         try {
             // Initialize settings if needed
-            $this->settingService->initializeDefaultSettings();
+            // $this->settingService->initializeDefaultSettings();
 
             // Get storage type from database
             $storageType = $this->settingService->getSetting('storage_type')->value ?? 'local';
@@ -143,8 +119,10 @@ class UploadService
             if ($storageType === 's3') {
                 $this->configureS3FromDatabase();
                 $s3Bucket = $this->settingService->getSetting('s3_bucket')->value ?? '';
-                $fullLocation = str_replace($s3Bucket . '/', '', $storage_path);
-                Storage::disk('s3')->delete($fullLocation);
+                if (strpos($storage_path, $s3Bucket) === 0) {
+                    $storage_path = substr($storage_path, strlen($s3Bucket) + 1);
+                }
+                Storage::disk('s3')->delete($storage_path);
             } else {
                 $relativePath = ltrim(preg_replace('/^storage\//', '', $storage_path));
                 Storage::disk('public')->delete($relativePath);
@@ -168,12 +146,16 @@ class UploadService
     {
         try {
             // Initialize settings if needed
-            $this->settingService->initializeDefaultSettings();
+            // $this->settingService->initializeDefaultSettings();
 
             // Get storage type from database
             $storageType = $this->settingService->getSetting('storage_type')?->value ?? 'local';
 
             if ($storageType === 's3') {
+                $s3Bucket = $this->settingService->getSetting('s3_bucket')->value ?? '';
+                if (strpos($storage_path, $s3Bucket) === 0) {
+                    $storage_path = substr($storage_path, strlen($s3Bucket) + 1);
+                }
                 $this->configureS3FromDatabase();
                 if ($checkFileExists == true) {
                     if (!Storage::disk('s3')->exists($storage_path)) {
