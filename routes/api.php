@@ -91,8 +91,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::prefix('file')->group(function () {
         Route::post('local-upload', [UploadController::class, 'store']);
+        Route::put('local-upload', [UploadController::class, 'store']);
         Route::post('delete', [UploadController::class, 'delete']);
-        Route::post('create-s3-upload-presigned-url', [UploadController::class, 'uploadS3']);
+        Route::post('create-upload-url', [UploadController::class, 'createUploadUrl']);
         Route::post('create-download-url', [UploadController::class, 'createDownloadUrl']);
     });
 

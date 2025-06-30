@@ -60,8 +60,7 @@ class ProfileController extends BaseController
 
     public function show($id, Request $request)
     {
-        $user = $request->user();
-        $result = $this->profileService->getProfile($id, $user);
+        $result = $this->profileService->getProfile($id);
         return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
     }
 

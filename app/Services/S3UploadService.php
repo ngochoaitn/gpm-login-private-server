@@ -146,7 +146,7 @@ class S3UploadService
             'data' => [
                 'upload_url' => $presignedUrl,
                 // 'public_url' => "https://{$bucket}.s3.amazonaws.com/{$key}",
-                'key' => $key,
+                // 'key' => $key,
                 'storage_path' => $s3Data['s3_api_bucket'] . '/' . $key,
                 // 'expires_in' => 600,                         // 10 minutes
                 'mime_type' => $mimeType,
@@ -176,10 +176,10 @@ class S3UploadService
         }
     }
 
-    public function generateDownloadPresignedUrl($fileKey, $expires = '+50 minutes')
+    public function generateDownloadPresignedUrl($filePath, $expires = '+50 minutes')
     {
         // Initialize settings if needed
-        $this->settingService->initializeDefaultSettings();
+        // $this->settingService->initializeDefaultSettings();
 
         // Get S3 settings
         $s3Settings = $this->settingService->getS3Settings();
@@ -216,11 +216,15 @@ class S3UploadService
                 ],
             ]);
 
-            $bucket = $s3Data['s3_api_bucket'];
+            // $bucket = $s3Data['s3_api_bucket'];
+            $parts = explode('/', $filePath);
+            $bucket = $parts[0];
+
+            $filePathWithoutBucket = substr($filePath, strlen($bucket) + 1);
 
             $options = [
                 'Bucket' => $bucket,
-                'Key' => $fileKey
+                'Key' => $filePathWithoutBucket
             ];
 
             // Tạo presigned GET request

@@ -24,35 +24,76 @@ class UploadService
     public function storeFile($file, string $fileName)
     {
         try {
-            if ($file->getSize() > 0) {
-                // Initialize settings if needed
+            // Nếu là string (raw binary content)
+            if (is_string($file)) {
+                if (strlen($file) > 0) {
+                    return $this->storeRawContentLocally($file, $fileName);
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => 'upload_failed',
+                        'data' => ['message' => 'invalid_file_input']
+                    ];
+                }
+            }
+
+            // Nếu là UploadedFile
+            if ($file instanceof \Illuminate\Http\UploadedFile && $file->getSize() > 0) {
                 $this->settingService->initializeDefaultSettings();
 
-                // Get storage type from database
                 $storageType = $this->settingService->getSetting('storage_type')->value ?? 'local';
 
                 if ($storageType === 's3') {
-                    //return $this->storeFileToS3($file, $fileName);
                     return [
                         'success' => false,
-                        'message' => 'use_endpoint_upload_s3',
+                        'message' => 'use_endpoint_create_upload_url',
                         'data' => ['message' => 's3_upload_not_supported']
                     ];
                 } else {
                     return $this->storeFileLocally($file, $fileName);
                 }
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'upload_failed',
-                    'data' => ['message' => 'file_empty']
-                ];
             }
+
+            return [
+                'success' => false,
+                'message' => 'upload_failed',
+                'data' => ['message' => 'invalid_file_input']
+            ];
         } catch (\Exception $ex) {
             return [
                 'success' => false,
                 'message' => 'upload_failed',
-                'data' => $ex
+                'data' => $ex->getMessage() // tránh trả về cả exception object
+            ];
+        }
+    }
+
+    protected function storeRawContentLocally(string $content, string $fileName)
+    {
+        try {
+            $path = storage_path('app/public/profiles');
+            if (!file_exists($path)) {
+                mkdir($path, 0777, true);
+            }
+
+            $fullPath = $path . '/' . $fileName;
+            file_put_contents($fullPath, $content);
+
+            return [
+                'success' => true,
+                'message' => 'upload_success',
+                'data' => [
+                    'path' => 'storage/profiles',
+                    'file_name' => $fileName,
+                    'file_key' => 'storage/profiles/' . $fileName,
+                    'storage_path' => 'storage/profiles/' . $fileName
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'upload_failed',
+                'data' => $e->getMessage()
             ];
         }
     }
@@ -152,13 +193,14 @@ class UploadService
             $storageType = $this->settingService->getSetting('storage_type')?->value ?? 'local';
 
             if ($storageType === 's3') {
-                $s3Bucket = $this->settingService->getSetting('s3_bucket')->value ?? '';
-                if (strpos($storage_path, $s3Bucket) === 0) {
-                    $storage_path = substr($storage_path, strlen($s3Bucket) + 1);
-                }
-                $this->configureS3FromDatabase();
                 if ($checkFileExists == true) {
-                    if (!Storage::disk('s3')->exists($storage_path)) {
+                    $pathCheckFileExists = $storage_path;
+                    $s3Bucket = $this->settingService->getSetting('s3_bucket')?->value ?? '';
+                    if (strpos($pathCheckFileExists, $s3Bucket) === 0) {
+                        $pathCheckFileExists = substr($pathCheckFileExists, strlen($s3Bucket) + 1);
+                    }
+                    $this->configureS3FromDatabase();
+                    if (!Storage::disk('s3')->exists($pathCheckFileExists)) {
                         return [
                             'success' => false,
                             'message' => 'file_not_found',

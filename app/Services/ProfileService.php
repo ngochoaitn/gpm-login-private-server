@@ -212,8 +212,9 @@ class ProfileService
      * @param User $user
      * @return array
      */
-    public function getProfile(string $id, User $user)
+    public function getProfile(string $id)
     {
+        $user = auth()->user();
         if (!$this->canAccessProfile($id, $user)) {
             return ['success' => false, 'message' => 'insufficient_permission_profile', 'data' => null];
         }
