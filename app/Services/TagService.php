@@ -73,9 +73,9 @@ class TagService
             $existingTag = Tag::where('name', $name)->where('category', $category)->first();
             if ($existingTag) {
                 return [
-                    'success' => false,
-                    'message' => 'tag_name_exists',
-                    'data' => null
+                    'success' => true,
+                    'message' => 'tag_exists',
+                    'data' => $existingTag
                 ];
             }
 
@@ -125,7 +125,7 @@ class TagService
             }
 
             // Check if another tag with same name already exists
-            $existingTag = Tag::where('name', $name)->where('id', '!=', $id)->first();
+            $existingTag = Tag::where('name', $name)->where('id', '!=', $id)->where('category', $category)->first();
             if ($existingTag) {
                 return [
                     'success' => false,

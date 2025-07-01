@@ -219,7 +219,15 @@ class ProfileService
             return ['success' => false, 'message' => 'insufficient_permission_profile', 'data' => null];
         }
 
-        $profile = Profile::active()->find($id);
+        $profile = Profile::active()->with([
+            'creator:id,email,display_name',
+            'lastRunUser:id,email,display_name',
+            'group:id,name',
+            'tags' => function ($q) {
+                $q->select('tags.id', 'name', 'color', 'category')
+                ->orderBy('profile_tags.created_at');
+            }
+        ])->find($id);
         if ($profile == null) {
             return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
@@ -312,22 +320,24 @@ class ProfileService
             return ['success' => false, 'message' => 'insufficient_permission_profile_delete', 'data' => null];
         }
 
-        if($delete_mode == 'hard')
+        if($delete_mode == 'hard') {
             $query = Profile::query();
-        else
+        }
+        else {
             $query = Profile::active();
+        }
 
         $profile = $query->find($id);
         if ($profile == null) {
             return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
-        // if($delete_mode == 'hard') {
-        //     $this->uploadService->deleteFile($profile->storage_path);
-        //     $profile->delete();
-        // } else {
-        //     $profile->softDelete($user);
-        // }
+        if($delete_mode == 'hard') {
+            // $this->uploadService->deleteFile($profile->storage_path);
+            $profile->delete();
+        } else {
+            $profile->softDelete($user);
+        }
 
         return ['success' => true, 'message' => 'profile_deleted', 'data' => null];
     }
@@ -435,10 +445,10 @@ class ProfileService
         }
 
         // Check permission
-        if (!$currentUser->isAdmin() && $profile->created_by != $currentUser->id) {
-            return ['success' => false, 'message' => 'owner_required', 'data' => null];
+        if (!$this->checkAccessProfile($profileId, $currentUser, [ProfileShare::ROLE_FULL])) {
+            return ['success' => false, 'message' => 'insufficient_permission_profile_share', 'data' => null];
         }
-
+        
         // Handle profile share
         $profileShare = ProfileShare::where('profile_id', $profileId)
             ->where('user_id', $userId)
@@ -481,19 +491,24 @@ class ProfileService
         $profiles = Profile::active()->whereIn('id', $profileIds)->get();
 
         $count = 0;
+        $lastError = null;
         foreach ($profiles as $profile) {
             $result = $this->shareProfile($profile->id, $userId, $role, $currentUser);
             if ($result['success']) {
                 $count++;
+            } else {
+                $lastError = $result['message'];
             }
         }
 
+        $total = count(value: $profileIds);
         return [
-            'success' => true,
-            'message' => 'ok',
+            'success' => $count > 0,
+            'message' => $count === $total ? 'ok' : ($count > 0 ? 'partial_profiles_shared' : 'no_profiles_shared'),
             'data' => [
                 'shared_count' => $count,
-                'total_profiles' => count(value: $profileIds)
+                'total_profiles' => $total,
+                'last_error' => $lastError
             ]
         ];
 
@@ -570,6 +585,11 @@ class ProfileService
             return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
 
+        $user = auth()->user();
+        if(!$this->canModifyProfile($profileId, $user)) {
+            return ['success' => false, 'message' => 'insufficient_permission_profile_edit', 'data' => null];
+        }
+
         // Lấy danh sách cột của bảng
         $columns = Schema::getColumnListing('profiles');
 
@@ -632,9 +652,12 @@ class ProfileService
             }
         }
 
-        return ['success' => true, 'message' => 'ok', 'data' => [
+        $total = count(value: $profileIds);
+        return ['success' => $count > 0,
+            'message' => $count === $total ? 'ok' : ($count > 0 ? 'partial_profiles_updated' : 'no_profiles_updated'),
+            'data' => [
             'updated_count' => $count,
-            'total_profiles' => count(value: $profileIds),
+            'total_profiles' => $total,
             'last_error' => $lastError
         ]];
     }

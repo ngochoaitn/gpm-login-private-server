@@ -296,12 +296,14 @@ class ProxyService
                 }
             }
 
+            $total = count($proxyIds);
             return [
-                'success' => true,
-                'message' => 'ok',
+                'success' => $count > 0,
+                'message' => $count === $total ? 'all_proxies_deleted' :
+                    ($count > 0 ? 'partial_proxies_deleted' : 'no_proxies_deleted'),
                 'data' => [
                     'deleted_count' => $count,
-                    'total_proxies' => count($proxyIds)
+                    'total_proxies' => $total
                     ]
             ];
         } catch (\Exception $e) {
@@ -539,12 +541,14 @@ class ProxyService
             }
         }
 
+        $total = count($proxyIds);
         return [
-            'success' => true,
-            'message' => 'ok',
+            'success' => $count > 0,
+            'message' => $count === $total ? 'all_proxies_shared' :
+                ($count > 0 ? 'partial_proxies_shared' : 'no_proxies_shared'),
             'data' => [
                 'shared_count' => $count,
-                'total_proxies' => count($proxyIds)
+                'total_proxies' => $total
             ]
         ];
     }
@@ -578,19 +582,25 @@ class ProxyService
     public function bulkRemoveShareProxy(array $proxyIds, string $userId)
     {
         $count = 0;
+        $lastError = null;
         foreach ($proxyIds as $id) {
             $result = $this->removeShareProxy($id, $userId);
             if ($result['success']) {
                 $count++;
+            } else {
+                $lastError = $result['message'];
             }
         }
 
+        $total = count($proxyIds);
         return [
-            'success' => true,
-            'message' => 'ok',
+            'success' => $count > 0,
+            'message' => $count === $total ? 'all_proxies_removed_share' :
+                ($count > 0 ? 'partial_proxies_removed_share' : 'no_proxies_removed_share'),
             'data' => [
                 'removed_count' => $count,
-                'total_proxies' => count($proxyIds)
+                'total_proxies' => $total,
+                'last_error' => $lastError
             ]
         ];
     }
