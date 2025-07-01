@@ -76,7 +76,7 @@ class GroupController extends BaseController
     public function getTotal()
     {
         $total = $this->groupService->getTotalGroups();
-        return $this->getJsonResponse(true, 'OK', ['total' => $total]);
+        return $this->getJsonResponse(true, 'OK', $total);
     }
 
 
