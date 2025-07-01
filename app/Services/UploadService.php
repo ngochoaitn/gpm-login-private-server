@@ -237,4 +237,36 @@ class UploadService
             ];
         }
     }
+
+    public function checkFileExists(string $storage_path)
+    {
+        try {
+            $storageType = $this->settingService->getSetting('storage_type')?->value ?? 'local';
+
+            if ($storageType === 's3') {
+                $pathCheckFileExists = $storage_path;
+                $s3Bucket = $this->settingService->getSetting('s3_bucket')?->value ?? '';
+                if (strpos($pathCheckFileExists, $s3Bucket) === 0) {
+                    $pathCheckFileExists = substr($pathCheckFileExists, strlen($s3Bucket) + 1);
+                }
+                $this->configureS3FromDatabase();
+                $exists = Storage::disk('s3')->exists($pathCheckFileExists);
+            } else {
+                $relativePath = ltrim(preg_replace('/^storage\//', '', $storage_path));
+                $exists = Storage::disk('public')->exists($relativePath);
+            }
+
+            return [
+                'success' => true,
+                'message' => $exists ? 'file_exists' : 'file_not_found',
+                'data' => $exists
+            ];
+        } catch (\Exception $ex) {
+            return [
+                'success' => false,
+                'message' => 'error',
+                'data' => $ex->getMessage()
+            ];
+        }
+    }
 }

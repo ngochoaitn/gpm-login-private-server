@@ -95,6 +95,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('delete', [UploadController::class, 'delete']);
         Route::post('create-upload-url', [UploadController::class, 'createUploadUrl']);
         Route::post('create-download-url', [UploadController::class, 'createDownloadUrl']);
+        Route::post('check-file-exists', [UploadController::class, 'checkFileExists']);
     });
 
     Route::prefix('tags')->group(function () {

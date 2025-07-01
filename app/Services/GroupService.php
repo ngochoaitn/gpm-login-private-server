@@ -123,6 +123,10 @@ class GroupService
      */
     public function deleteGroup(string $id)
     {
+        if($id == '00000000-0000-0000-0000-000000000000') {
+            return ['success' => false, 'message' => 'cannot_delete_all_group'];
+        }
+
         $user = auth()->user();
 
         $group = Group::find($id);
@@ -151,7 +155,19 @@ class GroupService
      */
     public function getTotalGroups()
     {
-        return Group::count();
+        // return Group::count();
+        $user = auth()->user();
+        $userId = $user->id;
+        if($user->isAdmin()) {
+            return Group::count();
+        }
+        $createdGroups = Group::where('created_by', $userId)->orWhere('id', '00000000-0000-0000-0000-000000000000')->get();
+        $sharedGroups = Group::whereHas('shares', function ($query) use ($userId) {
+            $query->where('user_id', $userId);
+        })->get();
+
+        $allGroups = $createdGroups->merge($sharedGroups)->unique('id');
+        return $allGroups->count();
     }
 
     /**
@@ -162,6 +178,14 @@ class GroupService
      */
     public function getGroupShareUsers(string $groupId, $paginate = false)
     {
+        $currentUser = auth()->user();
+        if ($groupId == '00000000-0000-0000-0000-000000000000' || !$this->canAccessGroup($groupId, $currentUser, [GroupShare::ROLE_FULL, GroupShare::ROLE_EDIT, GroupShare::ROLE_VIEW])) {
+            if($paginate) {
+                return [];
+            }
+            return null;
+        }
+
         $query = GroupShare::join('users', 'group_shares.user_id', '=', 'users.id')
         ->where('group_shares.group_id', $groupId)
         ->select('users.id', 'users.display_name', 'users.email', 'group_shares.role');
@@ -184,6 +208,10 @@ class GroupService
      */
     public function shareGroup(string $groupId, string $userId, string $role, User $currentUser)
     {
+        if($groupId == '00000000-0000-0000-0000-000000000000') {
+            return ['success' => false, 'message' => 'cannot_share_all_group'];
+        }
+
         // Validate shared user
         $sharedUser = User::find($userId);
         if ($sharedUser == null) {
