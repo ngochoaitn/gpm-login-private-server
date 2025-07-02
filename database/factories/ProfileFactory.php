@@ -6,6 +6,7 @@ use App\Models\Profile;
 use App\Models\User;
 use App\Models\Group;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Carbon\Carbon;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Profile>
@@ -44,7 +45,8 @@ class ProfileFactory extends Factory
         return $this->state(fn(array $attributes) => [
             'status' => Profile::STATUS_IN_USE,
             'using_by' => User::factory(),
-            'last_used_at' => now(),
+            'last_used_at' => Carbon::now('UTC'),
+            'last_run_at' => Carbon::now('UTC'),
         ]);
     }
 
@@ -55,7 +57,7 @@ class ProfileFactory extends Factory
     {
         return $this->state(fn(array $attributes) => [
             'is_deleted' => true,
-            'deleted_at' => now(),
+            'deleted_at' => Carbon::now('UTC'),
             'deleted_by' => User::factory(),
         ]);
     }

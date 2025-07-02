@@ -102,7 +102,7 @@ class SetupService
      */
     public function getSystemTime()
     {
-        $now = Carbon::now()->format('Y-m-d H:i:s');
+        $now = Carbon::now('UTC')->format('Y-m-d H:i:s');
         return ['time' => $now];
     }
 

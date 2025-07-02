@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class Profile extends Model
 {
@@ -174,7 +175,8 @@ class Profile extends Model
     {
         $this->increment('usage_count');
         $this->update([
-            'last_used_at' => now(),
+            'last_used_at' => Carbon::now('UTC'),
+            'last_run_at' => Carbon::now('UTC'),
             'using_by' => $user?->id,
         ]);
     }
@@ -187,7 +189,8 @@ class Profile extends Model
         $this->update([
             'status' => self::STATUS_IN_USE,
             'using_by' => $user->id,
-            'last_used_at' => now(),
+            'last_used_at' => Carbon::now('UTC'),
+            'last_run_at' => Carbon::now('UTC')
         ]);
     }
 
@@ -209,7 +212,7 @@ class Profile extends Model
     {
         $this->update([
             'is_deleted' => true,
-            'deleted_at' => now(),
+            'deleted_at' => Carbon::now('UTC'),
             'deleted_by' => $user->id,
         ]);
     }
