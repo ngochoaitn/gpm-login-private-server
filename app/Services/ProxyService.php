@@ -24,7 +24,7 @@ class ProxyService
     {
         $query = Proxy::with(['tags' => function ($q) {
                     $q->select('tags.id', 'name', 'color', 'category')->orderBy('proxy_tags.created_at');
-                }])->select('id', 'raw_proxy', 'status', 'created_by', 'updated_by', 'created_at', 'updated_at');
+                }])->select('id', 'raw_proxy', 'meta_data', 'created_by', 'updated_by', 'created_at', 'updated_at');
 
         // Apply search filter
         if (!empty($filters['search'])) {
@@ -39,11 +39,6 @@ class ProxyService
             $query->whereHas('tags', function ($q) use ($tagId) {
                 $q->where('tags.id', $tagId);
             });
-        }
-
-        // Apply status filter
-        if (isset($filters['status'])) {
-            $query->where('status', $filters['status']);
         }
 
         switch ($sort) {
@@ -85,7 +80,7 @@ class ProxyService
     public function getProxy($id, User $user)
     {
         try {
-            $proxy = Proxy::with(['tags:id,name,color,category'])->select('id', 'raw_proxy', 'status', 'created_at', 'updated_at', 'created_by', 'updated_by')->find($id);
+            $proxy = Proxy::with(['tags:id,name,color,category'])->select('id', 'raw_proxy', 'meta_data', 'created_at', 'updated_at', 'created_by', 'updated_by')->find($id);
 
             if (!$proxy) {
                 return [
@@ -121,12 +116,13 @@ class ProxyService
     /**
      * Create new proxy
      */
-    public function createProxy($rawProxy, $status = null, $createdBy = null, $updatedBy = null)
+    public function createProxy($rawProxy, $metaData = null, $createdBy = null, $updatedBy = null)
     {
+        // die($rawProxy ?? 'huhu');
         try {
             $proxy = Proxy::create([
                 'raw_proxy' => $rawProxy,
-                'status' => $status ?? Proxy::STATUS_ACTIVE,
+                'meta_data' => $metaData,
                 'created_by' => $createdBy,
                 'updated_by' => $updatedBy ?? $createdBy
             ]);
@@ -155,9 +151,10 @@ class ProxyService
             $successCount = 0;
 
             foreach ($proxiesData as $index => $proxyData) {
+                //die(json_encode($proxyData['meta_data']) ?? 'huhu');
                 $result = $this->createProxy(
                     $proxyData['raw_proxy'] ?? $proxyData,
-                    $proxyData['status'] ?? Proxy::STATUS_ACTIVE,
+                    $proxyData['meta_data'] ?? null,
                     $createdBy,
                     $createdBy
                 );
@@ -199,7 +196,7 @@ class ProxyService
     /**
      * Update proxy
      */
-    public function updateProxy($id, $rawProxy, $status, User $user)
+    public function updateProxy($id, $rawProxy, $metaData, User $user)
     {
         try {
             $proxy = Proxy::find($id);
@@ -222,7 +219,7 @@ class ProxyService
 
             $updateData = [
                 'raw_proxy' => $rawProxy ?? $proxy->raw_proxy,
-                'status' => $status ?? Proxy::STATUS_ACTIVE,
+                'metaData' => $metaData ?? $proxy->meta_data,
                 'updated_by' => $user->id
             ];
 

@@ -24,7 +24,6 @@ class ProxyController extends BaseController
         $filters = [
             'search' => $request->search ?? null,
             'tags' => $request->tags ?? null,
-            'status' => $request->status ?? null,
             'per_page' => $request->per_page ?? 30,
             'page' => $request->page ?? 1,
             'tag_id' => $request->tag_id ?? null,
@@ -41,7 +40,7 @@ class ProxyController extends BaseController
 
         $result = $this->proxyService->createProxy(
             $request->raw_proxy,
-            $request->status ?? null,
+            $request->meta_data ?? null,
             $user->id,
             $user->id
         );
@@ -77,7 +76,7 @@ class ProxyController extends BaseController
         $result = $this->proxyService->updateProxy(
             $id,
             $request->raw_proxy ?? null,
-            $request->status ?? null,
+            $request->meta_data ?? null,
             $user
         );
 

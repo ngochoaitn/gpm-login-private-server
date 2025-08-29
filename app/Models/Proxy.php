@@ -20,7 +20,7 @@ class Proxy extends Model
      */
     protected $fillable = [
         'raw_proxy',
-        'status',
+        'meta_data',
         'created_by',
         'updated_by',
     ];
@@ -39,14 +39,6 @@ class Proxy extends Model
     protected $hidden = [
         // Add any sensitive fields here if needed
     ];
-
-    /**
-     * Proxy status constants
-     */
-    const STATUS_ACTIVE = 'active';
-    const STATUS_INACTIVE = 'inactive';
-    const STATUS_TESTING = 'testing';
-    const STATUS_ERROR = 'error';
 
     protected static function boot()
     {
@@ -114,22 +106,6 @@ class Proxy extends Model
     }
 
     /**
-     * Scope to get only active proxies
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('status', self::STATUS_ACTIVE);
-    }
-
-    /**
-     * Scope to get proxies by status
-     */
-    public function scopeByStatus($query, string $status)
-    {
-        return $query->where('status', $status);
-    }
-
-    /**
      * Scope to get proxies by type (legacy support)
      */
     public function scopeByType($query, string $type)
@@ -147,16 +123,6 @@ class Proxy extends Model
                 'required',
                 'string',
                 'max:500'
-            ],
-            'status' => [
-                'nullable',
-                'string',
-                'in:' . implode(',', [
-                    self::STATUS_ACTIVE,
-                    self::STATUS_INACTIVE,
-                    self::STATUS_TESTING,
-                    self::STATUS_ERROR
-                ])
             ],
             'created_by' => 'required|integer|exists:users,id',
             'updated_by' => 'nullable|integer|exists:users,id'
@@ -186,7 +152,6 @@ class Proxy extends Model
             'raw_proxy.required' => 'Proxy address is required.',
             'raw_proxy.max' => 'Proxy address cannot exceed 500 characters.',
             'raw_proxy.unique' => 'You already have this proxy address in your list.',
-            'status.in' => 'Status must be one of: active, inactive, testing, error.',
             'created_by.required' => 'Creator is required.',
             'created_by.exists' => 'Creator must be a valid user.',
             'updated_by.exists' => 'Updater must be a valid user.'

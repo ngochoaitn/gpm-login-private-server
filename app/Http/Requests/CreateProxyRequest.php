@@ -35,16 +35,6 @@ class CreateProxyRequest extends FormRequest
                         $fail('The raw_proxy must be in a valid proxy format (e.g., host:port or protocol://host:port).');
                     }
                 },
-            ],
-            'status' => [
-                'nullable',
-                'string',
-                'in:' . implode(',', [
-                    Proxy::STATUS_ACTIVE,
-                    Proxy::STATUS_INACTIVE,
-                    Proxy::STATUS_TESTING,
-                    Proxy::STATUS_ERROR
-                ])
             ]
         ];
     }
@@ -59,7 +49,6 @@ class CreateProxyRequest extends FormRequest
         return [
             'raw_proxy.required' => 'Proxy address is required.',
             'raw_proxy.max' => 'Proxy address cannot exceed 500 characters.',
-            'status.in' => 'Status must be one of: active, inactive, testing, error.',
         ];
     }
 
