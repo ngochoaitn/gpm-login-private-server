@@ -69,80 +69,44 @@
                 <div class="row">
                     <div class="mb-3 col-md-6">
                         <label class="form-label" for="S3_KEY">S3_KEY</label>
-                        <input name="S3_KEY" class="form-control" id="S3_KEY" rows="3" placeholder="S3 key"
+                        <input name="S3_KEY" class="form-control" id="S3_KEY" placeholder="S3 key"
                             value="{{ $s3Config->S3_KEY  }}" />
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label" for="S3_PASSWORD">S3_PASSWORD</label>
-                        <input name="S3_PASSWORD" class="form-control" id="S3_PASSWORD" rows="3" placeholder="S3 secret"
+                        <input name="S3_PASSWORD" class="form-control" id="S3_PASSWORD" placeholder="S3 secret"
                             value="{{ $s3Config->S3_PASSWORD  }}" />
                     </div>
                 </div>
                 <div class="row">
                     <div class="mb-3 col-md-6">
                         <label class="form-label" for="S3_BUCKET">S3_BUCKET</label>
-                        <input name="S3_BUCKET" class="form-control" id="S3_BUCKET" rows="3" placeholder="S3 bucket"
+                        <input name="S3_BUCKET" class="form-control" id="S3_BUCKET" placeholder="S3 bucket"
                             value="{{ $s3Config->S3_BUCKET  }}" />
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label" for="S3_REGION">S3_REGION</label>
-                        <select name="S3_REGION" class="form-control">
-                            <option value="APEast1" @if ($s3Config->S3_REGION=='APEast1' ) selected @endif>APEast1
+                        @php
+                        $standardRegions = [
+                            "APEast1", "AFSouth1", "APNortheast1", "APNortheast2", "APNortheast3",
+                            "APSouth1", "APSoutheast1", "APSoutheast2", "CACentral1", "CNNorth1",
+                            "CNNorthWest1", "EUCentral1", "EUNorth1", "EUSouth1", "EUWest1",
+                            "EUWest2", "EUWest3", "MESouth1", "SAEast1", "USEast1",
+                            "USEast2", "USGovCloudEast1", "USGovCloudWest1", "USIsobEast1",
+                            "USIsoEast1", "USWest1", "USWest2"
+                        ];
+                        $isCustomRegion = !in_array($s3Config->S3_REGION, $standardRegions);
+                        @endphp
+                        <input name="S3_REGION" class="form-control" id="S3_REGION_CUSTOM" placeholder="S3 region"
+                            value="{{ $s3Config->S3_REGION  }}" style="display: {{ $isCustomRegion ? '' : 'none' }};" />
+
+                        <select name="S3_REGION" class="form-control" id="S3_REGION_SELECT"
+                            style="display: {{ $isCustomRegion ? 'none' : '' }};">
+                        @foreach($standardRegions as $region)
+                            <option value="{{ $region }}" {{ $s3Config->S3_REGION == $region ? 'selected' : '' }}>
+                                {{ $region }}
                             </option>
-                            <option value="AFSouth1" @if ($s3Config->S3_REGION=='AFSouth1' ) selected @endif>AFSouth1
-                            </option>
-                            <option value="APEast1" @if ($s3Config->S3_REGION=='APEast1' ) selected @endif>APEast1
-                            </option>
-                            <option value="APNortheast1" @if ($s3Config->S3_REGION=='APNortheast1' ) selected
-                                @endif>APNortheast1</option>
-                            <option value="APNortheast2" @if ($s3Config->S3_REGION=='APNortheast2' ) selected
-                                @endif>APNortheast2</option>
-                            <option value="APNortheast3" @if ($s3Config->S3_REGION=='APNortheast3' ) selected
-                                @endif>APNortheast3</option>
-                            <option value="APSouth1" @if ($s3Config->S3_REGION=='APSouth1' ) selected @endif>APSouth1
-                            </option>
-                            <option value="APSoutheast1" @if ($s3Config->S3_REGION=='APSoutheast1' ) selected
-                                @endif>APSoutheast1</option>
-                            <option value="APSoutheast2" @if ($s3Config->S3_REGION=='APSoutheast2' ) selected
-                                @endif>APSoutheast2</option>
-                            <option value="CACentral1" @if ($s3Config->S3_REGION=='CACentral1' ) selected
-                                @endif>CACentral1</option>
-                            <option value="CNNorth1" @if ($s3Config->S3_REGION=='CNNorth1' ) selected @endif>CNNorth1
-                            </option>
-                            <option value="CNNorthWest1" @if ($s3Config->S3_REGION=='CNNorthWest1' ) selected
-                                @endif>CNNorthWest1</option>
-                            <option value="EUCentral1" @if ($s3Config->S3_REGION=='EUCentral1' ) selected
-                                @endif>EUCentral1</option>
-                            <option value="EUNorth1" @if ($s3Config->S3_REGION=='EUNorth1' ) selected @endif>EUNorth1
-                            </option>
-                            <option value="EUSouth1" @if ($s3Config->S3_REGION=='EUSouth1' ) selected @endif>EUSouth1
-                            </option>
-                            <option value="EUWest1" @if ($s3Config->S3_REGION=='EUWest1' ) selected @endif>EUWest1
-                            </option>
-                            <option value="EUWest2" @if ($s3Config->S3_REGION=='EUWest2' ) selected @endif>EUWest2
-                            </option>
-                            <option value="EUWest3" @if ($s3Config->S3_REGION=='EUWest3' ) selected @endif>EUWest3
-                            </option>
-                            <option value="MESouth1" @if ($s3Config->S3_REGION=='MESouth1' ) selected @endif>MESouth1
-                            </option>
-                            <option value="SAEast1" @if ($s3Config->S3_REGION=='SAEast1' ) selected @endif>SAEast1
-                            </option>
-                            <option value="USEast1" @if ($s3Config->S3_REGION=='USEast1' ) selected @endif>USEast1
-                            </option>
-                            <option value="USEast2" @if ($s3Config->S3_REGION=='USEast2' ) selected @endif>USEast2
-                            </option>
-                            <option value="USGovCloudEast1" @if ($s3Config->S3_REGION=='USGovCloudEast1' ) selected
-                                @endif>USGovCloudEast1</option>
-                            <option value="USGovCloudWest1" @if ($s3Config->S3_REGION=='USGovCloudWest1' ) selected
-                                @endif>USGovCloudWest1</option>
-                            <option value="USIsobEast1" @if ($s3Config->S3_REGION=='USIsobEast1' ) selected
-                                @endif>USIsobEast1</option>
-                            <option value="USIsoEast1" @if ($s3Config->S3_REGION=='USIsoEast1' ) selected
-                                @endif>USIsoEast1</option>
-                            <option value="USWest1" @if ($s3Config->S3_REGION=='USWest1' ) selected @endif>USWest1
-                            </option>
-                            <option value="USWest2" @if ($s3Config->S3_REGION=='USWest2' ) selected @endif>USWest2
-                            </option>
+                        @endforeach
                         </select>
                     </div>
                 </div>
@@ -150,20 +114,30 @@
 
             <!-- cache extension -->
             <div class="row mb-3">
-                <div class="d-flex">
-                    <input type="checkbox" class="form-check-input me-2" name="cache_extension" id="cache_extension"
-                        {{ $cache_extension_setting == 'on' ? 'checked' : '' }} />
-                    <label class="form-check-label" for="cache_extension">Enable cache extension (<a href="#"
-                            onclick="event.preventDefault(); document.getElementById('detail_cache_extension').style.display = 'block'">Details</a>)</label>
+                <div class="col-md-6">
+                    <div class="d-flex">
+                        <input type="checkbox" class="form-check-input me-2" name="cache_extension" id="cache_extension"
+                            {{ $cache_extension_setting == 'on' ? 'checked' : '' }} />
+                        <label class="form-check-label" for="cache_extension">Enable cache extension (<a href="#"
+                                onclick="event.preventDefault(); document.getElementById('detail_cache_extension').style.display = 'block'">Details</a>)</label>
+                    </div>
+                    <div id="detail_cache_extension" style="display: none;">
+                        Cache extension applicable to profiles created from <b>September 26, 2024</b><br />
+                        Extensions will be uploaded and stored on a private server <i>(files with the prefix cache_)</i> instead
+                        of being stored in the profile<br />
+                        This helps <b>save storage space, reduce load times, and improve profile opening speed</b><br />
+                        <span style="color:red"><b>The private server administrator is responsible for enabling or disabling
+                                this feature</b></span>
+                    </div>
                 </div>
-            </div>
-            <div id="detail_cache_extension" style="display: none;">
-                Cache extension applicable to profiles created from <b>September 26, 2024</b><br />
-                Extensions will be uploaded and stored on a private server <i>(files with the prefix cache_)</i> instead
-                of being stored in the profile<br />
-                This helps <b>save storage space, reduce load times, and improve profile opening speed</b><br />
-                <span style="color:red"><b>The private server administrator is responsible for enabling or disabling
-                        this feature</b></span>
+
+                <div class="col-md-6">
+                    <div class="d-flex">
+                        <input type="checkbox" class="form-check-input me-2" name="cbo_custom_region" id="cbo_custom_region"
+                        {{ $isCustomRegion ? 'checked' : '' }}/>
+                        <label class="form-check-label" for="cbo_custom_region">Custom region</label>
+                    </div>
+                </div>
             </div>
             <br>
             <button class="btn btn-primary" type="submit">Apply</button>
@@ -273,6 +247,31 @@ function handleStorageTypeChange(select) {
         s3Config.style.display = "none";
     }
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+    const checkbox = document.getElementById("cbo_custom_region");
+    const selectBox = document.getElementById("S3_REGION_SELECT");
+    const customInput = document.getElementById("S3_REGION_CUSTOM");
+
+    function toggleRegionInput() {
+        if (checkbox.checked) {
+            customInput.style.display = "";
+            customInput.setAttribute("name", "S3_REGION");
+
+            selectBox.style.display = "none";
+            selectBox.removeAttribute("name");
+        } else {
+            customInput.style.display = "none";
+            customInput.removeAttribute("name");
+
+            selectBox.style.display = "";
+            selectBox.setAttribute("name", "S3_REGION");
+        }
+    }
+
+    checkbox.addEventListener("change", toggleRegionInput);
+    toggleRegionInput(); // chạy lần đầu để đảm bảo đúng trạng thái
+});
 </script>
 
 </html>

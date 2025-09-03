@@ -17,8 +17,24 @@ class S3UploadService
         $this->settingService = $settingService;
     }
 
+    public function getDORegion($s3Region) {
+        $host = preg_replace('#^https?://#', '', $s3Region);
+        $parts = explode('.', $host);
+        if (is_array($parts) && count($parts) > 2) {
+            return $parts[0];
+        }
+        return null;
+    }
+
     public function getS3RegionCode($s3Region)
     {
+        // DO
+        $checkDO = $this->getDORegion($s3Region);
+        if($checkDO != null) {
+            return $checkDO;
+        }
+
+        // AWS
         if ($s3Region == 'AFSouth1')
             return 'af-south-1';
         if ($s3Region == 'APEast1')
@@ -113,6 +129,7 @@ class S3UploadService
 
         // Create S3 client
         $regionCode = $this->getS3RegionCode($s3Data['s3_api_region']);
+        $isDO = $this->getDORegion($s3Data['s3_api_region']) != null;
         $s3 = new S3Client([
             'version' => 'latest',
             'region' => $regionCode,
@@ -121,6 +138,17 @@ class S3UploadService
                 'secret' => $s3Data['s3_api_secret'],
             ],
         ]);
+        if($isDO) { 
+            $s3 = new S3Client([
+                'version' => 'latest',
+                'region' => $regionCode,
+                'endpoint' => $s3Data['s3_api_region'],
+                'credentials' => [
+                    'key' => $s3Data['s3_api_key'],
+                    'secret' => $s3Data['s3_api_secret'],
+                ],
+            ]);
+        }
 
         $bucket = $s3Data['s3_api_bucket'];
 
@@ -151,7 +179,7 @@ class S3UploadService
                 // 'expires_in' => 600,                         // 10 minutes
                 'mime_type' => $mimeType,
                 'method' => 'PUT'
-            ]
+             ]
         ];
     }
 
@@ -207,6 +235,8 @@ class S3UploadService
 
         try {
             $regionCode = $this->getS3RegionCode($s3Data['s3_api_region']);
+            $isDO = $this->getDORegion($s3Data['s3_api_region']) != null;
+
             $s3 = new S3Client([
                 'version' => 'latest',
                 'region' => $regionCode,
@@ -216,6 +246,17 @@ class S3UploadService
                 ],
             ]);
 
+            if($isDO) { 
+                $s3 = new S3Client([
+                    'version' => 'latest',
+                    'region' => $regionCode,
+                    'endpoint' => $s3Data['s3_api_region'],
+                    'credentials' => [
+                        'key' => $s3Data['s3_api_key'],
+                        'secret' => $s3Data['s3_api_secret'],
+                    ],
+                ]);
+            }
             // $bucket = $s3Data['s3_api_bucket'];
             $parts = explode('/', $filePath);
             $bucket = $parts[0];
