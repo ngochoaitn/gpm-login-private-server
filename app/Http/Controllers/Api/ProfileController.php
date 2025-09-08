@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\BaseController;
 use Illuminate\Http\Request;
 use App\Services\ProfileService;
+use Carbon\Carbon;
 
 class ProfileController extends BaseController
 {
@@ -76,8 +77,8 @@ class ProfileController extends BaseController
             $request->dynamic_data,
             $request->meta_data,
             $request->group_id,
-            null,
-            null,
+            Carbon::now('UTC'),
+            $user->id,
             $user
         );
 
