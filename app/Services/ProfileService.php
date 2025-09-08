@@ -333,7 +333,7 @@ class ProfileService
         }
 
         if($delete_mode == 'hard') {
-            // $this->uploadService->deleteFile($profile->storage_path);
+            $this->uploadService->deleteFile($profile->storage_path);
             $profile->delete();
         } else {
             $profile->softDelete($user);

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Aws\S3\S3Client;
 use Illuminate\Support\Facades\Storage;
 
 class UploadService
@@ -133,12 +134,17 @@ class UploadService
         $s3Key = $this->settingService->getSetting('s3_key')->value ?? '';
         $s3Secret = $this->settingService->getSetting('s3_secret')->value ?? '';
         $s3Bucket = $this->settingService->getSetting('s3_bucket')->value ?? '';
-        $s3Region = $s3UploadService->getS3RegionCode($this->settingService->getSetting('s3_region')->value ?? '');
+        $s3Region = $this->settingService->getSetting('s3_region')->value ?? '';
+        $s3RegionCode = $s3UploadService->getS3RegionCode($this->settingService->getSetting('s3_region')->value ?? '');
+
+        $isDO = $s3UploadService->getDORegion($s3Region) != null;
 
         config(['filesystems.disks.s3.key' => $s3Key]);
         config(['filesystems.disks.s3.secret' => $s3Secret]);
         config(['filesystems.disks.s3.bucket' => $s3Bucket]);
-        config(['filesystems.disks.s3.region' => $s3Region]);
+        config(['filesystems.disks.s3.region' => $s3RegionCode]);
+        if($isDO)
+            config(['filesystems.disks.s3.endpoint' => $s3Region]);
         // config(['filesystems.disks.s3.url' => $s3Url]);
     }
 
