@@ -97,6 +97,11 @@ class ProfileService
      */
     private function applyFilters($query, User $user, array $filters)
     {
+        // Filter by ID
+        if (isset($filters['id'])) {
+            $query->where('id', $filters['id']);
+        }
+
         // Filter by group
         if (isset($filters['group_id']) && $filters['group_id'] != '00000000-0000-0000-0000-000000000000') {
             $query->where('group_id', $filters['group_id']);

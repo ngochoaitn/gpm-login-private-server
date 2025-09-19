@@ -29,7 +29,8 @@ class ProfileController extends BaseController
             'sort' => $request->sort ?? null,
             'per_page' => $request->per_page ?? 30,
             'page' => $request->page ?? 1,
-            'is_deleted' => $request->is_deleted ?? 0
+            'is_deleted' => $request->is_deleted ?? 0,
+            'id' => $request->id ?? null,
         ];
 
         $extensiveFields = $request->extensive_fields ?? [];
