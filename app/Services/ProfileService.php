@@ -69,8 +69,12 @@ class ProfileService
             $groupShareIds = DB::table('group_shares')->where('user_id', $user->id)->pluck('group_id');
             $profileShareIds = DB::table('profile_shares')->where('user_id', $user->id)->pluck('profile_id');
 
-            $query = Profile::active()
-                ->select($selectFields)
+            if(isset($filters['is_deleted']) && $filters['is_deleted'] == 1)
+                $query = Profile::intrashed();
+            else
+                $query = Profile::active();
+
+            $query = $query->select($selectFields)
                 ->where(function ($q) use ($user, $groupShareIds, $profileShareIds) {
                     $q->where('created_by', $user->id)
                         ->orWhereIn('group_id', $groupShareIds)
