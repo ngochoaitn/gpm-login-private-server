@@ -64,6 +64,10 @@ class AdminService
         $user->is_active = !$user->is_active;
         $user->save();
 
+        if(!$user->is_active) {
+            $user->tokens()->delete();
+        }
+
         return true;
     }
 
