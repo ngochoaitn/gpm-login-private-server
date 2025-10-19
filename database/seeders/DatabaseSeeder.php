@@ -32,7 +32,7 @@ class DatabaseSeeder extends Seeder
 
         Group::factory()->create([
             'id' => '00000000-0000-0000-0000-000000000000',
-            'name' => 'All',
+            'name' => 'Default group',
             'sort_order' => 0
         ]);
 

@@ -81,7 +81,7 @@ class WebAuthService
 
             Group::create([
                 'id' => '00000000-0000-0000-0000-000000000000',
-                'name' => 'All',
+                'name' => 'Default group',
                 'sort_order' => 0,
                 'created_by' => User::first()->id
             ]);

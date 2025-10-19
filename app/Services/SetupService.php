@@ -62,7 +62,8 @@ class SetupService
 
             // Create first group
             $group = new Group();
-            $group->name = 'All';
+            $group->name = 'Default group';
+            $group->id = '0000000-0000-0000-0000-000000000000';
             $group->sort = 1;
             $group->created_by = $firstUser->id;
             $group->save();
