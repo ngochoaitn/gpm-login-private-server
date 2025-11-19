@@ -34,7 +34,7 @@ class ProfileService
      */
     public function getProfiles(User $user, array $filters = [], array $extensiveFields = [])
     {
-        $selectFields = ['id', 'name', 'storage_path', 'meta_data', 'group_id', 'created_by', 'status', 'last_run_at', 'last_run_by', 'created_at', 'updated_at', 'dynamic_data'];
+        $selectFields = ['id', 'name', 'storage_path', 'meta_data', 'group_id', 'created_by', 'status', 'using_by', 'last_run_at', 'last_run_by', 'created_at', 'updated_at', 'dynamic_data'];
         // Add extensive fields if provided, avoid duplicates
         if (count($extensiveFields) > 0) {
             foreach ($extensiveFields as $field) {
@@ -55,6 +55,7 @@ class ProfileService
             ->with([
                 'creator:id,email,display_name',
                 'lastRunUser:id,email,display_name',
+                'currentUser:id,email,display_name',
                 'group:id,name',
                 // 'tags:id,name,color,category',
                 'tags' => function ($q) {
@@ -80,7 +81,7 @@ class ProfileService
                         ->orWhereIn('group_id', $groupShareIds)
                         ->orWhereIn('id', $profileShareIds);
                 })
-                ->with(['creator:id,email,display_name', 'lastRunUser:id,email,display_name', 'group:id,name', 'tags:id,name,color,category']);
+                ->with(['creator:id,email,display_name',  'currentUser:id,email,display_name', 'lastRunUser:id,email,display_name', 'group:id,name', 'tags:id,name,color,category']);
         }
 
         // Apply filters
