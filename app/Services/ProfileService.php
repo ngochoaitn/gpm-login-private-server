@@ -329,14 +329,7 @@ class ProfileService
             return ['success' => false, 'message' => 'insufficient_permission_profile_delete', 'data' => null];
         }
 
-        if($delete_mode == 'hard') {
-            $query = Profile::query();
-        }
-        else {
-            $query = Profile::active();
-        }
-
-        $profile = $query->find($id);
+        $profile = Profile::find($id);
         if ($profile == null) {
             return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
         }
@@ -589,6 +582,9 @@ class ProfileService
     function editProperty(string $profileId, string $fieldName, ?string $newValue)
     {
         $profile = Profile::active()->find($profileId);
+        if ($fieldName == 'is_deleted'){
+            $profile = Profile::find($profileId);
+        }
 
         if ($profile === null) {
             return ['success' => false, 'message' => 'profile_not_found', 'data' => null];
