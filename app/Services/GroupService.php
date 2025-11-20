@@ -16,7 +16,7 @@ class GroupService
     {
         $user = auth()->user();
 
-        $query = Group::query();
+        $query = Group::query()->with(['creator:id,email,display_name']);;
 
         if (!$user->isAdmin()) {
             $query->where('created_by', $user->id)
