@@ -1,7 +1,8 @@
-version: '3.8'
+# version: '3.8'
 
 services:
-    app:
+    gpm_private_server_global_web:
+        container_name: gpm_private_server_global_web
         build:
             context: .
             dockerfile: Dockerfile
@@ -12,16 +13,17 @@ services:
         volumes:
             # - '.:/var/www/html'
             - ./.env:/var/www/html/.env
-            - 'web_storage:/var/www/html/storage'
+            - 'gpm_private_server_global_web_storage:/var/www/html/storage'
             - './docker/php/php_large_file_upload.ini:/usr/local/etc/php/conf.d/php_large_file_upload.ini'
             - ./docker/apache/000-default.conf:/etc/apache2/sites-available/000-default.conf
-        networks:
-            - laravel-network
-    mysql:
+        depends_on:
+            - gpm_private_server_global_mysql
+    gpm_private_server_global_mysql:
         image: 'mysql/mysql-server:8.0'
+        restart: unless-stopped
         # ports:
         #     - '${FORWARD_DB_PORT:-3306}:3306'
-        restart: unless-stopped
+        container_name: gpm_private_server_global_mysql
         environment:
             MYSQL_ROOT_HOST: '%'
             MYSQL_DATABASE: ${DB_DATABASE}
@@ -29,28 +31,22 @@ services:
             MYSQL_PASSWORD: ${DB_PASSWORD}
             MYSQL_USER: ${DB_USERNAME}
         volumes:
-            - 'db_data:/var/lib/mysql'
-            - './gpmlogin.sql:/docker-entrypoint-initdb.d/gpmlogin.sql'
-        networks:
-            - laravel-network
-    phpmyadmin:
+            - 'gpm_private_server_global_mysql_data:/var/lib/mysql'
+            - './gpmlogin-global.sql:/docker-entrypoint-initdb.d/gpmlogin-global.sql'
+    gpm_private_server_global_phpmyadmin:
         image: phpmyadmin/phpmyadmin:latest
         restart: unless-stopped
+        container_name: gpm_private_server_global_phpmyadmin
         ports:
             - "8081:80"
         environment:
-            - PMA_HOST=mysql
+            - PMA_HOST=gpm_private_server_global_mysql
             - PMA_PORT=3306
             - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
-        networks:
-            - laravel-network
         depends_on:
-            - mysql
-networks:
-    laravel-network:
-        driver: bridge
+            - gpm_private_server_global_mysql
 volumes:
-    db_data:
+    gpm_private_server_global_mysql_data:
         driver: local
-    web_storage:
+    gpm_private_server_global_web_storage:
         driver: local
