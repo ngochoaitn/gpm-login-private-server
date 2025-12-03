@@ -13,14 +13,15 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('profile_roles', function (Blueprint $table) {
             $table->id();
-            $table->string('user_name')->unique();
-            $table->string('display_name');
-            $table->string('password');
-            $table->integer('role')->comment('1 - user, 2 - admin');
-            $table->integer('active')->comment('1 - active, 0 - deactive');
+            $table->unsignedBigInteger('profile_id');
+            $table->unsignedBigInteger('user_id');
+            $table->integer('role')->comment('1 - read only, 2 - full control');
             $table->timestamps();
+
+            $table->foreign('profile_id')->references('id')->on('profiles');
+            $table->foreign('user_id')->references('id')->on('users');
         });
     }
 
@@ -31,6 +32,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('profile_roles');
     }
 };

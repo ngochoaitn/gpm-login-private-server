@@ -28,7 +28,7 @@
         <form method="post">
             @csrf
             <label>Admin username</label><br/>
-            <input type="text" name="email" class="form-control">
+            <input type="text" name="username" class="form-control">
             <br/>
             <label>Password</label><br/>
             <input type="password" name="password" class="form-control"><br/>

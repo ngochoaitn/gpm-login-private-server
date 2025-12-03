@@ -2,33 +2,28 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\BaseController;
 use Illuminate\Http\Request;
-use App\Services\AuthService;
+use App\Models\User;
 
 class AuthController extends BaseController
 {
-    protected AuthService $authService;
+    public function login(Request $request){
+        $user = User::where('user_name', strtolower($request->user_name))
+            ->where('password', $request->password)->where('active', '<>', 0)->first();
 
-    public function __construct(AuthService $authService)
-    {
-        $this->authService = $authService;
-    }
+        if ($user == null){
+            return $this->getJsonResponse(false, 'Đăng nhập thất bại', null);
+        }
 
-    public function login(Request $request)
-    {
-        $result = $this->authService->login(
-            $request->email ?? $request->user_name,
-            $request->password
-        );
+        // Remove all tokens
+        $user->tokens()->delete();
 
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
-    }
+        // Create new token
+        $token = $user->createToken('token');
+        $resp = ['token' => $token->plainTextToken];
 
-    public function logout(Request $request)
-    {
-        $user = $request->user();
-        $result = $this->authService->logout($user);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+        return $this->getJsonResponse(true, 'Đăng nhập thành công', $resp);
     }
 }

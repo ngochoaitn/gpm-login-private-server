@@ -2,108 +2,170 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\BaseController;
 use Illuminate\Http\Request;
-use App\Services\GroupService;
+use App\Models\Group;
+use App\Models\GroupRole;
+use App\Models\User;
 
 class GroupController extends BaseController
 {
-    protected GroupService $groupService;
-
-    public function __construct(GroupService $groupService)
-    {
-        $this->groupService = $groupService;
-    }
-
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
     public function index(Request $request)
     {
-        $filters = [
-            'search' => $request->search ?? null,
-            'per_page' => $request->per_page ?? 30,
-            'page' => $request->page ?? 1
-        ];
-
-        $groups = $this->groupService->getAllGroups($filters);
-        return $this->getJsonResponse(true, 'OK', $groups);
+        $groups = Group::where('id', '!=', 0)->orderBy('sort')->get(); // 23.7.2024 0 is trash
+        return $this->getJsonResponse(true, 'Thành công', $groups);
     }
 
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function store(Request $request)
     {
         $user = $request->user();
 
-        $group = $this->groupService->createGroup(
-            $request->name,
-            $request->order,
-            $user->id
-        );
+        if ($user->role < 2)
+            return $this->getJsonResponse(false, 'Không đủ quyền. Bạn cần có quyền admin để sử dụng tính năng này!', null);
 
-        return $this->getJsonResponse(true, 'group_created', $group);
+        $group = new Group();
+        $group->name = $request->name;
+        $group->sort = $request->sort;
+        $group->created_by = $user->id;
+        $group->save();
+
+        return $this->getJsonResponse(true, 'Thành công', $group);
     }
 
-    public function show($id, Request $request)
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
     {
-        $includeShareUsers = $request->include_share_users ?? false;
-        $group = $this->groupService->getGroupById($id, $includeShareUsers);
-        return $this->getJsonResponse(true, 'OK', $group);
+        //
     }
 
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function update(Request $request, $id)
     {
         $user = $request->user();
 
-        $group = $this->groupService->updateGroup(
-            $id,
-            $request->name,
-            $request->order,
-            $user->id
-        );
+        if ($user->role < 2)
+            return $this->getJsonResponse(false, 'Không đủ quyền. Bạn cần có quyền admin để sử dụng tính năng này!', null);
 
-        if ($group == null) {
-            return $this->getJsonResponse(false, 'can_not_update_group', null);
-        }
+        $group = Group::find($id);
 
-        return $this->getJsonResponse(true, 'group_updated', null);
+        if ($group == null)
+            return $this->getJsonResponse(false, 'Group không tồn tại', null);
+
+        $group->name = $request->name;
+        $group->sort = $request->sort;
+        $group->save();
+
+        return $this->getJsonResponse(true, 'Cập nhật thành công', null);
     }
 
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function destroy($id, Request $request)
     {
-        $result = $this->groupService->deleteGroup($id);
+        $user = $request->user();
 
-        return $this->getJsonResponse($result['success'], $result['message'], null);
+        if ($user->role < 2)
+            return $this->getJsonResponse(false, 'Không đủ quyền. Bạn cần có quyền admin để sử dụng tính năng này!', null);
+
+        $group = Group::find($id);
+        if ($group == null)
+            return $this->getJsonResponse(false, 'Group không tồn tại!', null);
+
+        if ($group->profiles->count() > 0)
+            return $this->getJsonResponse(false, 'Không thể xóa Group có liên kết với Profiles!', null);
+
+        $group->delete();
+
+        return $this->getJsonResponse(true, 'Xóa thành công', null);
     }
 
-
+    /**
+     * Get total profile
+     *
+     * @return \Illuminate\Http\Response
+     */
     public function getTotal()
     {
-        $total = $this->groupService->getTotalGroups();
-        return $this->getJsonResponse(true, 'OK', $total);
+        $total = Group::count();
+        return $this->getJsonResponse(true, 'OK', ['total' => $total]);
     }
 
-
-    public function getGroupShareUsers($id)
+    /**
+     * Get list of users role
+     */
+    public function getGroupRoles($id)
     {
-        $groupShares = $this->groupService->getGroupShareUsers($id, true);
-        return $this->getJsonResponse(true, 'OK', $groupShares);
+        $groupRoles = GroupRole::where('group_id', $id)
+                            ->with(['group', 'user'])->get();
+        return $this->getJsonResponse(true, 'OK', $groupRoles);
     }
 
     public function share($id, Request $request)
     {
+        // Validate input
         $user = $request->user();
 
-        $result = $this->groupService->shareGroup(
-            $id,
-            $request->user_id,
-            $request->role,
-            $user
-        );
+        $sharedUser = User::find($request->user_id);
+        if ($sharedUser == null)
+            return $this->getJsonResponse(false, 'User ID không tồn tại', null);
 
-        return $this->getJsonResponse($result['success'], $result['message'], null);
-    }
+        if ($sharedUser->role == 2)
+            return $this->getJsonResponse(false, 'Không cần set quyền cho Admin', null);
 
-    public function removeShare($id, Request $request)
-    {
-        $result = $this->groupService->removeShareGroup($id, $request->user_id);
+        $group = Group::find($id);
+        if ($group == null)
+            return $this->getJsonResponse(false, 'Profile không tồn tại', null);
 
-        return $this->getJsonResponse($result['success'], $result['message'], null);
+        if ($user->role != 2 && $group->created_by != $user->id)
+            return $this->getJsonResponse(false, 'Bạn phải là người tạo group', null);
+
+        // Handing data
+        $groupRole = GroupRole::where('group_id', $id)->where('user_id', $request->user_id)->first();
+
+        // If role = 0, remove in GroupRole
+        if ($request->role == 0){
+            if ($groupRole != null)
+                $groupRole->delete();
+
+            return $this->getJsonResponse(true, 'OK', null);
+        }
+
+        if ($groupRole == null)
+            $groupRole = new GroupRole();
+
+        // Share
+        $groupRole->group_id = $id;
+        $groupRole->user_id = $request->user_id;
+        $groupRole->role = $request->role;
+        $groupRole->save();
+
+        return $this->getJsonResponse(true, 'OK', null);
     }
 }

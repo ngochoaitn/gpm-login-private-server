@@ -1,52 +1,67 @@
-# version: '3.8'
-
 services:
-    gpm_private_server_global_web:
-        container_name: gpm_private_server_global_web
+    laravel:
         build:
-            context: .
+            context: ./docker/8.3
             dockerfile: Dockerfile
-        restart: unless-stopped
-        working_dir: /var/www/html
+            args:
+                WWWGROUP: '${WWWGROUP}'
+        image: sail-8.3/app
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
         ports:
-            - "${WEB_PORT:-80}:80"
+            - '${APP_PORT:-80}:80'
+            # - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+            XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
+            XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
+            IGNITION_LOCAL_SITES_PATH: '${PWD}'
         volumes:
-            # - '.:/var/www/html'
-            - ./.env:/var/www/html/.env
-            - 'gpm_private_server_global_web_storage:/var/www/html/storage'
-            - './docker/php/php_large_file_upload.ini:/usr/local/etc/php/conf.d/php_large_file_upload.ini'
-            - ./docker/apache/000-default.conf:/etc/apache2/sites-available/000-default.conf
+            - '.:/var/www/html'
+        networks:
+            - sail
         depends_on:
-            - gpm_private_server_global_mysql
-    gpm_private_server_global_mysql:
+            - mysql
+    mysql:
         image: 'mysql/mysql-server:8.0'
-        restart: unless-stopped
         # ports:
         #     - '${FORWARD_DB_PORT:-3306}:3306'
-        container_name: gpm_private_server_global_mysql
         environment:
+            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
             MYSQL_ROOT_HOST: '%'
-            MYSQL_DATABASE: ${DB_DATABASE}
-            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-            MYSQL_PASSWORD: ${DB_PASSWORD}
-            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_DATABASE: '${DB_DATABASE}'
+            MYSQL_USER: '${DB_USERNAME}'
+            MYSQL_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 1
         volumes:
-            - 'gpm_private_server_global_mysql_data:/var/lib/mysql'
-            - './gpmlogin-global.sql:/docker-entrypoint-initdb.d/gpmlogin-global.sql'
-    gpm_private_server_global_phpmyadmin:
+            - 'sail-mysql:/var/lib/mysql'
+            # - './docker/mysql/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
+            - ./gpmlogin.sql:/docker-entrypoint-initdb.d/gpmlogin.sql
+        networks:
+            - sail
+        healthcheck:
+            test:
+                - CMD
+                - mysqladmin
+                - ping
+                - '-p${DB_PASSWORD}'
+            retries: 3
+            timeout: 5s
+    phpmyadmin:
         image: phpmyadmin/phpmyadmin:latest
-        restart: unless-stopped
-        container_name: gpm_private_server_global_phpmyadmin
         ports:
             - "8081:80"
         environment:
-            - PMA_HOST=gpm_private_server_global_mysql
+            - PMA_HOSTS=mysql
             - PMA_PORT=3306
-            - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
-        depends_on:
-            - gpm_private_server_global_mysql
+            - PMA_USER=sail
+            - PMA_PASSWORD=password
+        networks:
+            - sail
+networks:
+    sail:
+        driver: bridge
 volumes:
-    gpm_private_server_global_mysql_data:
-        driver: local
-    gpm_private_server_global_web_storage:
+    sail-mysql:
         driver: local

@@ -2,15 +2,7 @@
     "private": true,
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
-        "start": "php artisan serve",
-        "lint": "php composer.phar lint",
-        "lint:fix": "php composer.phar lint:fix",
-        "test": "php artisan test",
-        "test:coverage": "php artisan test --coverage",
-        "test:coverage-html": "php artisan test --coverage-html",
-        "test:coverage-clover": "php artisan test --coverage-clover=coverage.clover",
-        "test:coverage-json": "php artisan test --coverage-json=coverage.json"
+        "build": "vite build"
     },
     "devDependencies": {
         "axios": "^0.25",

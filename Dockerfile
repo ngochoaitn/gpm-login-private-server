@@ -1,88 +1,93 @@
-# FROM php:8.2-fpm
+FROM ubuntu:22.04
+LABEL maintainer="giaiphapmmo.vn"
 
-# # Install system dependencies
-# RUN apt-get update && apt-get install -y \
-#     git \
-#     curl \
-#     libpng-dev \
-#     libonig-dev \
-#     libxml2-dev \
-#     zip \
-#     unzip \
-#     nano
+ARG WWWGROUP=1000
+ARG WWWUSER=1000
 
-# # Clear cache
-# RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+ARG NODE_VERSION=20
+ARG MYSQL_CLIENT="mysql-client"
+ARG POSTGRES_VERSION=15
 
-# # Create directory for PHP configuration
-# RUN mkdir -p /usr/local/etc/php/conf.d
-
-# # Install PHP extensions
-# RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
-
-# # Get latest Composer
-# COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# # Set working directory
-# WORKDIR /var/www/html
-
-# # Copy existing application directory
-# COPY . .
-
-# RUN rm -rf public/storage
-# RUN php artisan storage:link
-# RUN php artisan key:generate
-# RUN chmod -Rf 777 ./storage
-# RUN chmod 777 /var/www/html/.env
-
-# # Install dependencies
-# RUN composer install
-
-# # Set permissions
-# RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-
-
-FROM php:8.1-apache
-
-# Cài đặt các dependencies cần thiết
-RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    zip \
-    unzip \
-    nano \
-    curl \
-    git \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql exif fileinfo
-
-# Cài đặt Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Copy file source Laravel vào container
-COPY . /var/www/html
 WORKDIR /var/www/html
 
-# Cấp quyền ghi cho storage và bootstrap/cache
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+ENV DEBIAN_FRONTEND noninteractive
+ENV TZ=UTC
+ENV SUPERVISOR_PHP_COMMAND="/usr/bin/php -d variables_order=EGPCS /var/www/html/artisan serve --host=0.0.0.0 --port=80"
+# ENV SUPERVISOR_PHP_USER="sail"
+ENV SUPERVISOR_PHP_USER="root"
 
-# # Thiết lập quyền truy cập
-# RUN chown -R www-data:www-data /var/www \
-#     && chmod -R 775 /var/www/storage \
-#     && chmod -R 775 /var/www/bootstrap/cache
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Kích hoạt mod_rewrite
-RUN a2enmod rewrite
+# RUN apt-get update \
+#     && mkdir -p /etc/apt/keyrings \
+#     && apt-get install -y gnupg gosu curl ca-certificates zip unzip git supervisor sqlite3 libcap2-bin libpng-dev python2 dnsutils librsvg2-bin fswatch ffmpeg nano  \
+#     && curl -sS 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x14aa40ec0831756756d7f66c4f4ea0aae5267a6c' | gpg --dearmor | tee /etc/apt/keyrings/ppa_ondrej_php.gpg > /dev/null \
+#     && echo "deb [signed-by=/etc/apt/keyrings/ppa_ondrej_php.gpg] https://ppa.launchpadcontent.net/ondrej/php/ubuntu jammy main" > /etc/apt/sources.list.d/ppa_ondrej_php.list \
+#     && apt-get update \
+#     && apt-get install -y php8.3-cli php8.3-dev \
+#        php8.3-pgsql php8.3-sqlite3 php8.3-gd \
+#        php8.3-curl \
+#        php8.3-imap php8.3-mysql php8.3-mbstring \
+#        php8.3-xml php8.3-zip php8.3-bcmath php8.3-soap \
+#        php8.3-intl php8.3-readline \
+#        php8.3-ldap \
+#        php8.3-msgpack php8.3-igbinary php8.3-redis php8.3-swoole \
+#        php8.3-memcached php8.3-pcov php8.3-imagick php8.3-xdebug \
+#     && curl -sLS https://getcomposer.org/installer | php -- --install-dir=/usr/bin/ --filename=composer \
+#     && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+#     && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_VERSION.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
+#     && apt-get update \
+#     && apt-get install -y nodejs \
+#     && npm install -g npm \
+#     && npm install -g pnpm \
+#     && npm install -g bun \
+#     && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | tee /etc/apt/keyrings/yarn.gpg >/dev/null \
+#     && echo "deb [signed-by=/etc/apt/keyrings/yarn.gpg] https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list \
+#     && curl -sS https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | tee /etc/apt/keyrings/pgdg.gpg >/dev/null \
+#     && echo "deb [signed-by=/etc/apt/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt jammy-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+#     && apt-get update \
+#     && apt-get install -y yarn \
+#     && apt-get install -y $MYSQL_CLIENT \
+#     && apt-get install -y postgresql-client-$POSTGRES_VERSION \
+#     && apt-get -y autoremove \
+#     && apt-get clean \
+#     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Expose cổng 80
-EXPOSE 80
+RUN apt-get update \
+    && apt-get install -y gnupg gosu curl ca-certificates libcap2-bin supervisor \
+    && curl -sS 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x14aa40ec0831756756d7f66c4f4ea0aae5267a6c' | gpg --dearmor | tee /etc/apt/keyrings/ppa_ondrej_php.gpg > /dev/null \
+    && echo "deb [signed-by=/etc/apt/keyrings/ppa_ondrej_php.gpg] https://ppa.launchpadcontent.net/ondrej/php/ubuntu jammy main" > /etc/apt/sources.list.d/ppa_ondrej_php.list \
+    && apt-get update \
+    && apt-get install -y php8.3-cli \
+       php8.3-mysql php8.3-gd \
+       php8.3-curl \
+       php8.3-imap php8.3-mbstring \
+       php8.3-xml php8.3-zip php8.3-bcmath php8.3-soap \
+       php8.3-intl \
+    && curl -sLS https://getcomposer.org/installer | php -- --install-dir=/usr/bin/ --filename=composer \
+    && apt-get -y autoremove \
+    && apt-get clean \
+    && apt-get install -y $MYSQL_CLIENT \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN setcap "cap_net_bind_service=+ep" /usr/bin/php8.3
+
+RUN groupadd --force -g $WWWGROUP sail
+RUN useradd -ms /bin/bash --no-user-group -g $WWWGROUP -u 1337 sail
+
+COPY start-container /usr/local/bin/start-container
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY php.ini /etc/php/8.3/cli/conf.d/99-sail.ini
+RUN chmod +x /usr/local/bin/start-container
+
+COPY . /var/www/html
 
 RUN rm -rf public/storage
 RUN php artisan storage:link
 RUN php artisan key:generate
-# RUN chmod -Rf 777 ./storage
+RUN chmod -Rf 777 ./storage
 RUN chmod 777 /var/www/html/.env
 
-CMD ["apache2-foreground"]
+EXPOSE 80/tcp
+
+ENTRYPOINT ["start-container"]

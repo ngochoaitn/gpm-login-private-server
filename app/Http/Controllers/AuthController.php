@@ -3,31 +3,24 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\WebAuthService;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    protected $webAuthService;
+    public function login(Request $request) {
+        $user = User::where('role', 2)->where('user_name', $request->username)->where('password', $request->password)
+                ->where('active', '<>', 0)->first();
 
-    public function __construct(WebAuthService $webAuthService)
-    {
-        $this->webAuthService = $webAuthService;
-    }
+        if ($user == null)
+            return redirect()->back()->with('error', 'Login failed');
 
-    public function login(Request $request)
-    {
-        $result = $this->webAuthService->login($request->email, $request->password);
-
-        if (!$result['success']) {
-            return redirect()->back()->with('error', $result['message']);
-        }
-
+        Auth::login($user);
         return redirect('/admin');
     }
 
-    public function logout()
-    {
-        $this->webAuthService->logout();
+    public function logout(){
+        Auth::logout();
         return redirect('/admin/auth');
     }
 }

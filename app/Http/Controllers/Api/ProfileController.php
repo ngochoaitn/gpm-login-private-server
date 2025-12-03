@@ -2,240 +2,392 @@
 
 namespace App\Http\Controllers\Api;
 
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\BaseController;
 use Illuminate\Http\Request;
-use App\Services\ProfileService;
+use App\Models\Profile;
+use App\Models\Group;
+use App\Models\GroupRole;
+use App\Models\ProfileRole;
+use App\Models\User;
 use Carbon\Carbon;
 
 class ProfileController extends BaseController
 {
-    protected $profileService;
-
-    public function __construct(ProfileService $profileService)
-    {
-        $this->profileService = $profileService;
-    }
-
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
     public function index(Request $request)
     {
         $user = $request->user();
 
-        $filters = [
-            'group_id' => $request->group_id ?? null,
-            'search' => $request->search ?? null,
-            'share_mode' => $request->share_mode ?? null,
-            'tags' => $request->tags ?? $request->tag_id ?? null,
-            'sort' => $request->sort ?? null,
-            'per_page' => $request->per_page ?? 30,
-            'page' => $request->page ?? 1,
-            'is_deleted' => $request->is_deleted ?? 0,
-            'id' => $request->id ?? null,
-        ];
+        // Default, show all profiles
+        $tmp = Profile::with(['createdUser', 'lastRunUser', 'group']);
 
-        $extensiveFields = $request->extensive_fields ?? [];
-        if ($extensiveFields && is_string($extensiveFields)) {
-            $extensiveFields = array_map('trim', explode(',', $extensiveFields));
+        // If user isn't admin, show by role
+        if ($user->role < 2){
+            $ids_group_share = DB::table('group_roles')->where('user_id', $user->id)->pluck('group_id');
+
+            // $ids = DB::table('profiles')
+            //     ->join('profile_roles', 'profiles.id', '=', 'profile_roles.profile_id')
+            //     ->where('profile_roles.user_id', $user->id)
+            //     ->select('profiles.id')->get();
+
+            $ids = DB::table('profiles')
+            ->join('profile_roles', 'profiles.id', '=', 'profile_roles.profile_id')
+            ->where(function($query) use ($user, $ids_group_share) {
+                $query->where('profile_roles.user_id', $user->id)
+                      ->orWhereIn('profiles.group_id', $ids_group_share);
+            })
+            ->select('profiles.id')->get();
+            
+            $arrIds = [];
+            foreach ($ids as $id){
+                array_push($arrIds, $id->id);
+            }
+
+            $tmp = Profile::whereIntegerInRaw('id', $arrIds)->with(['createdUser', 'lastRunUser', 'group']);
         }
 
-        $profiles = $this->profileService->getProfiles($user, $filters, $extensiveFields);
+        // Order by group
+        if (isset($request->group_id) && $request->group_id != Group::where('name', 'All')->first()->id)
+            $tmp = $tmp->where('group_id', $request->group_id);
+        else
+            $tmp = $tmp->where('group_id', '!=', 0); // 23.7.2024 trash
+
+        // Search
+        if (isset($request->search)) {
+            if (!str_contains($request->search, 'author:'))
+                $tmp = $tmp->where('name', 'like', "%$request->search%");
+            else {
+                $authorName = str_replace('author:', '', $request->search);
+                $createdUser = User::where('display_name', $authorName)->first();
+                if ($createdUser != null) {
+                    $tmp = $tmp->where('created_by', $createdUser->id);
+                }
+            }
+        }
+
+        // Filter
+        $shareMode = 1;
+
+        if (isset($request->share_mode)){
+            $shareMode = $request->share_mode;
+            if ($shareMode == 1) // No share
+                $tmp = $tmp->where('created_by', $user->id);
+            else
+                $tmp = $tmp->where('created_by', '!=', $user->id);
+        }
+
+        // Filter by tag
+        if (isset($request->tags)){
+            $tags = explode(",", $request->tags);
+            foreach ($tags as $tag) {
+                if ($tag == $tags[0])
+                    $tmp = $tmp->whereJsonContains('json_data->Tags', $tag);
+                else
+                    $tmp = $tmp->orWhereJsonContains('json_data->Tags', $tag);
+            }
+        }
+
+        // Sort
+        if (isset($request->sort)){
+            if ($request->sort == 'created')
+                $tmp = $tmp->orderBy('created_at');
+            else if ($request->sort == 'created_at_desc')
+                $tmp = $tmp->orderBy('created_at', 'desc');
+            else if ($request->sort == 'name')
+                $tmp = $tmp->orderBy('name');
+            else if ($request->sort == 'name_desc')
+                $tmp = $tmp->orderBy('name', 'desc');
+        }
+
+        // Pagination
+        $perPage = 30;
+        if (isset($request->per_page))
+            $perPage = $request->per_page;
+
+        $profiles = $tmp->paginate($perPage);
         return $this->getJsonResponse(true, 'OK', $profiles);
     }
 
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function store(Request $request)
     {
         $user = $request->user();
 
-        $result = $this->profileService->createProfile(
-            $request->name,
-            $request->storage_path,
-            $request->fingerprint_data,
-            $request->dynamic_data,
-            $request->meta_data,
-            $request->group_id,
-            $user->id,
-            $request->storage_type ?? 'S3'
-        );
+        $profile = new Profile();
+        $profile->name = $request->name;
+        $profile->s3_path = $request->s3_path;
+        $profile->json_data = $request->json_data;
+        $profile->cookie_data = '[]';
+        if (isset($request->cookie_data))
+            $profile->cookie_data = $request->cookie_data;
+        $profile->group_id = $request->group_id;
+        $profile->created_by = $user->id;
+        $profile->status = 1;
+        $profile->last_run_at = null;
+        $profile->last_run_by = null;
+        $profile->save();
 
-        return $this->getJsonResponse(true, 'success', $result);
+        $profileRole = new ProfileRole();
+        $profileRole->profile_id = $profile->id;
+        $profileRole->user_id = $user->id;
+        $profileRole->role = 2;
+        $profileRole->save();
+
+        $result = Profile::where('id', $profile->id)->with(['createdUser', 'lastRunUser', 'group'])->first();
+
+        return $this->getJsonResponse(true, 'Thành công', $result);
     }
 
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function show($id, Request $request)
     {
-        $result = $this->profileService->getProfile($id);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+        $user = $request->user();
+
+        // Check condition
+        $canAccess = $this->canAccessProfile($id, $user);
+
+        if (!$canAccess)
+            return $this->getJsonResponse(false, 'Không đủ quyền với profile', null);
+
+        // Get profile
+        $profile = Profile::find($id);
+        if ($profile == null)
+            return $this->getJsonResponse(false, 'Profile không tồn tại', null);
+
+        return $this->getJsonResponse(true, "Thành công", $profile);
     }
 
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function update(Request $request, $id)
     {
         $user = $request->user();
 
-        $result = $this->profileService->updateProfile(
-            $id,
-            $request->name,
-            $request->storage_path,
-            $request->fingerprint_data,
-            $request->dynamic_data,
-            $request->meta_data,
-            $request->group_id,
-            Carbon::now('UTC'),
-            $user->id,
-            $user
-        );
+        // Check condition
+        $canEdit = $this->canModifyProfile($id, $user);
 
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+        if (!$canEdit)
+            return $this->getJsonResponse(false, 'Không đủ quyền sửa profile', null);
+
+        // Edit on db
+        $profile = Profile::find($id);
+        if ($profile == null)
+            return $this->getJsonResponse(false, 'Profile không tồn tại', null);
+
+        $profile->name = $request->name;
+        $profile->s3_path = $request->s3_path;
+        $profile->json_data = $request->json_data;
+        $profile->cookie_data = $request->cookie_data;
+        $profile->group_id = $request->group_id;
+        $profile->last_run_at = $request->last_run_at;
+        $profile->last_run_by = $request->last_run_by;
+
+        $profile->save();
+
+        return $this->getJsonResponse(true, 'OK', null);
     }
 
+    /**
+     * Update status
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function updateStatus($id, Request $request)
     {
         $user = $request->user();
 
-        $result = $this->profileService->updateProfileStatus(
-            $id,
-            $request->status,
-            $user
-        );
+        // Check condition
+        $canAccess = $this->canAccessProfile($id, $user);
 
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+        if (!$canAccess)
+            return $this->getJsonResponse(false, 'Không đủ quyền update trạng thái profile', null);
+
+        // Edit on db
+        $profile = Profile::find($id);
+        if ($profile == null)
+            return $this->getJsonResponse(false, 'Profile không tồn tại', null);
+
+        $profile->status = $request->status;
+
+        // If user run profile, update last run data
+        if ($request->status == 2){
+            $profile->last_run_at = Carbon::now();
+            $profile->last_run_by = $user->id;
+        }
+
+        $profile->save();
+
+        return $this->getJsonResponse(true, 'Thành công', null);
     }
 
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function destroy($id, Request $request)
     {
-        $delete_mode = $request->mode ?? 'soft';
-        $result = $this->profileService->deleteProfile($id, $delete_mode);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+        $user = $request->user();
+
+        // Check condition
+        $canDelete = $this->canModifyProfile($id, $user);
+
+        if (!$canDelete)
+            return $this->getJsonResponse(false, 'Không đủ quyền xóa profile', null);
+
+        // Delete on db
+        $profile = Profile::find($id);
+        if ($profile == null)
+            return $this->getJsonResponse(false, 'Profile không tồn tại', null);
+
+        $profileRoles = ProfileRole::where('profile_id', $id);
+        $profileRoles->delete();
+        $profile->delete();
+
+        return $this->getJsonResponse(true, 'Xóa thành công', null);
     }
 
-    public function bulkDelete(Request $request)
+    /**
+     * Get list of users role
+     */
+    public function getProfileRoles($id)
     {
-        $profile_ids = $request->profile_ids ?? $request->ids ?? $request->all() ?? [];
-        $delete_mode = $request->mode ?? 'soft';
-        $result = $this->profileService->bulkDeleteProfile($profile_ids, $delete_mode);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+        $profileRoles = ProfileRole::where('profile_id', $id)
+                            ->with(['profile', 'user'])->get();
+        return $this->getJsonResponse(true, 'OK', $profileRoles);
     }
 
-    public function getProfileShares($id)
-    {
-        $profileShares = $this->profileService->getProfileShares($id);
-        return $this->getJsonResponse(true, 'OK', $profileShares);
-    }
-
+    /**
+     * Share profile
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function share($id, Request $request)
     {
+        // Validate input
         $user = $request->user();
 
-        $result = $this->profileService->shareProfile(
-            $id,
-            $request->user_id,
-            $request->role,
-            $user
-        );
+        $sharedUser = User::find($request->user_id);
+        if ($sharedUser == null)
+            return $this->getJsonResponse(false, 'User ID không tồn tại', null);
 
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+        if ($sharedUser->role == 2)
+            return $this->getJsonResponse(false, 'Không cần set quyền cho Admin', null);
+
+        $profile = Profile::find($id);
+        if ($profile == null)
+            return $this->getJsonResponse(false, 'Profile không tồn tại', null);
+
+        if ($user->role != 2 && $profile->created_by != $user->id)
+            return $this->getJsonResponse(false, 'Bạn phải là người tạo profile', null);
+
+        // Handing data
+        $profileRole = ProfileRole::where('profile_id', $id)->where('user_id', $request->user_id)->first();
+
+        // If role = 0, remove in ProfileRole
+        if ($request->role == 0){
+            if ($profileRole != null)
+                $profileRole->delete();
+
+            return $this->getJsonResponse(true, 'OK', null);
+        }
+
+        if ($profileRole == null)
+            $profileRole = new ProfileRole();
+
+        // Share
+        $profileRole->profile_id = $id;
+        $profileRole->user_id = $request->user_id;
+        $profileRole->role = $request->role;
+        $profileRole->save();
+
+        return $this->getJsonResponse(true, 'OK', null);
     }
 
-    public function removeShare($id, Request $request)
-    {
-        $user_id = $request->user_id;
-        $result = $this->profileService->removeShareProfile($id, $user_id);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
-    }
-
-    public function bulkShare(Request $request)
-    {
-        $user = $request->user();
-
-        $profile_ids = $request->profile_ids ?? $request->ids ?? [];
-        $result = $this->profileService->bulkShareProfile(
-            $profile_ids,
-            $request->user_id,
-            $request->role,
-            $user
-        );
-
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
-    }
-
-    public function bulkRemoveShare(Request $request)
-    {
-        $profile_ids = $request->profile_ids ?? $request->ids ?? [];
-        $result = $this->profileService->bulkRemoveShareProfile($profile_ids, $request->user_id);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
-    }
-
-    public function bulkEditProperty(Request $request)
-    {
-        $profile_ids = $request->profile_ids ?? $request->ids ?? [];
-        $result = $this->profileService->bulkEditProperty($profile_ids, $request->field_name, $request->new_value);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
-    }
-
-    public function bulkEditProxy(Request $request)
-    {
-        $profile_ids = $request->profile_ids ?? $request->ids ?? [];
-        $result = $this->profileService->bulkEditProxy($profile_ids, $request->proxies);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
-    }
-
+    /**
+     * Get total profile
+     *
+     * @return \Illuminate\Http\Response
+     */
     public function getTotal()
     {
-        $total = $this->profileService->getTotalProfiles();
+        $total = Profile::count();
         return $this->getJsonResponse(true, 'OK', ['total' => $total]);
     }
 
-    public function startUsing($id, Request $request)
+    /**
+     * Check profile permisson
+     *
+     * @return bool $canModify
+     */
+    private function canModifyProfile($profileId, $logonUser)
     {
-        $user = $request->user();
-        $result = $this->profileService->startUsingProfile($id, $user->id);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
+        $canModify = true;
+
+        if ($logonUser->role < 2) {
+            $profileRole = ProfileRole::where('user_id', $logonUser->id)->where('profile_id', $profileId)->first();
+            $canModify = $profileRole != null && $profileRole->role == 2;
+
+            if ($canModify == false){
+                $profile = Profile::find($profileId);
+                if($profile != null) {
+                    $groupRole = GroupRole::where('user_id', $logonUser->id)->where('group_id', $profile->group_id)->first();
+                    $canModify = $groupRole != null && $groupRole->role == 2;
+                }
+            }
+        }
+
+        return $canModify;
     }
 
-    public function stopUsing($id, Request $request)
+    /**
+     * Check profile permisson
+     *
+     * @return bool $canModify
+     */
+    private function canAccessProfile($profileId, $logonUser)
     {
-        $user = $request->user();
-        $result = $this->profileService->stopUsingProfile($id, $user->id);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
-    }
+        $canAccess = true;
 
-    public function addTags($id, Request $request)
-    {
-        $user = $request->user();
-        $tags = $request->tags ?? $request->all() ?? [];
-        $result = $this->profileService->addTagsToProfile($id, $tags, $user);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
-    }
+        if ($logonUser->role < 2){
+            $profileRole = ProfileRole::where('user_id', $logonUser->id)->where('profile_id', $profileId)->first();
+            $canAccess = ($profileRole != null);
 
-    public function removeTags($id, Request $request)
-    {
-        $user = $request->user();
-        $tags = $request->tags ?? $request->tag_ids ?? $request->ids ?? $request->all() ?? [];
-        $result = $this->profileService->removeTagsFromProfile($id, $tags, $user);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
-    }
+            if ($canAccess == false){
+                $profile = Profile::find($profileId);
+                if($profile != null) {
+                    $groupRole = GroupRole::where('user_id', $logonUser->id)->where('group_id', $profile->group_id)->first();
+                    $canAccess = $groupRole != null;
+                }
+            }
+        }
 
-    public function removeAllTags($id, Request $request)
-    {
-        $result = $this->profileService->removeAllTagsFromProfile($id);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
-    }
-
-    public function restore($id, Request $request)
-    {
-        $user = $request->user();
-        $result = $this->profileService->restoreProfile($id, $user);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
-    }
-
-    public function bulkRestore(Request $request)
-    {
-        $profile_ids = $request->profile_ids ?? $request->ids ?? $request->all() ?? [];
-        $result = $this->profileService->bulkRestoreProfile($profile_ids);
-        return $this->getJsonResponse($result['success'], $result['message'], $result['data']);
-    }
-
-    public function getProfileShareUsers($id)
-    {
-        $profileShares = $this->profileService->getProfileShareUsers($id, true);
-        return $this->getJsonResponse(true, 'OK', $profileShares);
+        return $canAccess;
     }
 }

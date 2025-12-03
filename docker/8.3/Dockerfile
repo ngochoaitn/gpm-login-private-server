@@ -80,10 +80,6 @@ RUN chmod +x /usr/local/bin/start-container
 
 COPY . /var/www/html
 
-# RUN ls -la /var/www/html
-# RUN cd /var/www/html
-RUN chmod +x /var/www/html/artisan
-RUN php artisan key:generate
 RUN rm -rf public/storage
 RUN php artisan storage:link
 RUN chmod -Rf 777 ./storage

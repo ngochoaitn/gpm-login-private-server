@@ -12,7 +12,4 @@ class Setting extends Model
     public $primaryKey = 'name';
     protected $table = 'settings';
     public $timestamps = false;
-    public $incrementing = false;
-    protected $keyType = 'string';
-    protected $fillable = ['name', 'value'];
 }

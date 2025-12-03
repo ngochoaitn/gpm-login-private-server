@@ -29,17 +29,6 @@ class RouteServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
 
         $this->routes(function () {
-            // API v1 routes - current routes with backward compatibility
-            Route::middleware('api')
-                ->prefix('api/v1')
-                ->group(base_path('routes/api.php'));
-
-            // API v2 routes - future updates
-            Route::middleware('api')
-                ->prefix('api/v2')
-                ->group(base_path('routes/api_v2.php'));
-
-            // API routes without version (for backward compatibility)
             Route::middleware('api')
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));

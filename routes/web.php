@@ -21,11 +21,11 @@ Route::get('/', [HomeController::class, 'index']);
 Route::get('/setup', [HomeController::class, 'setup']);
 Route::post('/setup', [HomeController::class, 'createDb']);
 Route::get('/test', [HomeController::class, 'test']);
-Route::get('/test', function () {
+Route::get('/test', function(){
     return 'test';
 });
 
-Route::get('/admin/auth', function () {
+Route::get('/admin/auth', function(){
     return view('login');
 })->name('login');
 Route::get('/admin/auth/logout', [AuthController::class, 'logout']);
@@ -34,15 +34,14 @@ Route::post('/admin/auth', [AuthController::class, 'login']);
 
 Route::get('/admin', [AdminController::class, 'index']);
 Route::get('/admin/active-user/{id}', [AdminController::class, 'toogleActiveUser']);
-Route::get('/admin/reset-user-password/{id}', [AdminController::class, 'resetUserPassword']);
 Route::get('/admin/reset-profile-status', [AdminController::class, 'resetProfileStatus']);
 Route::get('/admin/save-setting', [AdminController::class, 'saveSetting']);
 Route::get('/admin/migration', [AdminController::class, 'runMigrations']);
 
-Route::middleware(['auth:sanctum'])->get('/phpinfo', function () {
+Route::middleware(['auth:sanctum'])->get('/phpinfo', function(){
     phpinfo();
 });
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function(){
     Route::get('/auto-update', [UpdateController::class, 'updateFromRemoteZip']);
 });

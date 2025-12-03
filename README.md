@@ -18,34 +18,14 @@ docker compose down -v
 ./vendor/bin/sail up
 ```
 
-## Restart test docker
-```
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
-```
-
-## Docker php fpm
-```
-docker-compose down
-docker compose -f docker-compose-php-fpm.yml up -d --build
-```
-
-## Docker builder
+## Docker publish
 ```
 docker build -t ngochoaitn/gpm-login-private-server:beta-test .
 docker push ngochoaitn/gpm-login-private-server:beta-test 
 
 docker buildx create --name mybuilder --use --driver docker-container
 docker buildx inspect --bootstrap
-```
-
-## Docker publish
-```
 docker buildx build --platform linux/amd64,linux/arm64 -t ngochoaitn/gpm-login-private-server:latest --push .
-docker buildx build --platform linux/amd64,linux/arm64 -t ngochoaitn/gpm-login-private-server:php8_1_apache --push .
-docker buildx build --platform linux/amd64,linux/arm64 -t ngochoaitn/gpm-login-private-server:php_fpm --push -f ./docker/php-fpm/Dockerfile .
-docker buildx build --platform linux/amd64,linux/arm64 -t ngochoaitn/gpm-login-private-server:dev-test --push .
 ```
 
 ## Create file update
