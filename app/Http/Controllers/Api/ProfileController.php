@@ -60,14 +60,17 @@ class ProfileController extends BaseController
 
         // Search
         if (isset($request->search)) {
-            if (!str_contains($request->search, 'author:'))
-                $tmp = $tmp->where('name', 'like', "%$request->search%");
-            else {
+            if (str_contains($request->search, 'author:')) {
                 $authorName = str_replace('author:', '', $request->search);
                 $createdUser = User::where('display_name', $authorName)->first();
                 if ($createdUser != null) {
                     $tmp = $tmp->where('created_by', $createdUser->id);
                 }
+            } else if (str_contains($request->search, 'note:')) {
+                $note = trim(str_replace('note:', '', $request->search));
+                $tmp = $tmp->where('json_data->Note', 'like', "%$note%");
+            } else {
+                $tmp = $tmp->where('name', 'like', "$request->search%");
             }
         }
 
