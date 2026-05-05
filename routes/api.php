@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\UploadController;
+use App\Http\Controllers\Api\TestController;
 use App\Http\Controllers\HomeController;
 
 /*
@@ -22,6 +23,8 @@ use App\Http\Controllers\HomeController;
 */
 
 Route::get('/time', [HomeController::class, 'getSystemTime']);
+Route::get('/test-header', [TestController::class, 'testHeader']);
+Route::post('/test-header', [TestController::class, 'testHeader']);
 
 // Users
 Route::prefix('users')->group(function () {
